@@ -459,9 +459,12 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // 设置Canvas尺寸
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
+        // 设置Canvas尺寸 - 修复：确保Canvas有明确的尺寸
+        function resizeCanvas() {
+            const gameBoard = document.querySelector('.game-board');
+            canvas.width = gameBoard.clientWidth;
+            canvas.height = gameBoard.clientHeight;
+        }
         
         // 游戏状态
         let gameState = {
@@ -474,8 +477,8 @@
         
         // 玩家鱼
         const player = {
-            x: canvas.width / 2,
-            y: canvas.height / 2,
+            x: 0,
+            y: 0,
             radius: 15,
             speed: 5,
             color: '#4facfe',
@@ -561,6 +564,10 @@
         
         // 初始化游戏
         function initGame() {
+            // 确保Canvas尺寸正确
+            resizeCanvas();
+            
+            // 初始化玩家位置
             player.x = canvas.width / 2;
             player.y = canvas.height / 2;
             player.radius = 15;
@@ -1170,8 +1177,7 @@
         
         // 窗口大小调整
         window.addEventListener('resize', () => {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            resizeCanvas();
         });
         
         // 密码输入框回车键支持
@@ -1179,6 +1185,11 @@
             if (e.key === 'Enter') {
                 document.getElementById('loginButton').click();
             }
+        });
+        
+        // 初始化 - 确保页面加载时Canvas有正确尺寸
+        window.addEventListener('load', () => {
+            resizeCanvas();
         });
     </script>
 </body>
