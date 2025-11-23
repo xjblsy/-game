@@ -2,185 +2,200 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>深海霸主：进化 (存档版)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>深海霸主：深渊觉醒</title>
     <style>
         :root {
             --primary: #00f2fe;
+            --secondary: #4facfe;
             --accent: #ffd700;
             --danger: #ff4757;
-            --dark-bg: #0a192f;
-            --glass: rgba(16, 33, 60, 0.9);
+            --dark: #0a192f;
+            --glass: rgba(16, 33, 60, 0.95);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; user-select: none; }
-        body { background: #000; overflow: hidden; color: white; height: 100vh; display: flex; justify-content: center; align-items: center; }
-
-        /* 背景画布 */
-        #bgCanvas { position: fixed; top: 0; left: 0; z-index: -1; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Microsoft YaHei", sans-serif; user-select: none; }
         
-        /* 游戏画布 */
-        #gameCanvas { display: block; width: 100%; height: 100%; }
+        body { 
+            background: #000; 
+            overflow: hidden; 
+            width: 100vw; 
+            height: 100vh;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-        /* 通用UI面板 */
+        /* 游戏画布层 */
+        #gameLayer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        
+        /* UI 层 */
+        #uiLayer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+
+        /* 通用面板样式 */
         .panel {
             position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
             background: var(--glass);
-            border: 1px solid rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.1);
+            box-shadow: 0 0 50px rgba(0,242,254,0.2);
             backdrop-filter: blur(10px);
-            border-radius: 16px;
             padding: 40px;
+            border-radius: 20px;
             text-align: center;
-            box-shadow: 0 0 30px rgba(0,0,0,0.8);
-            max-width: 500px;
-            width: 90%;
+            min-width: 400px;
+            pointer-events: auto;
             display: none; /* 默认隐藏 */
-            animation: fadeIn 0.4s ease;
+            animation: floatIn 0.5s ease;
         }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes floatIn { from { opacity: 0; transform: translate(-50%, -40%); } to { opacity: 1; transform: translate(-50%, -50%); } }
 
-        h1, h2 { 
-            background: linear-gradient(to right, var(--primary), var(--accent));
-            -webkit-background-clip: text;
+        h1 { 
+            font-size: 2.5rem; 
+            background: linear-gradient(to right, var(--primary), var(--secondary)); 
+            -webkit-background-clip: text; 
             -webkit-text-fill-color: transparent;
             margin-bottom: 20px;
-            text-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
         }
 
         input {
-            width: 100%;
-            padding: 15px;
-            margin: 10px 0 20px;
-            border-radius: 8px;
-            border: 1px solid #333;
             background: rgba(0,0,0,0.5);
+            border: 1px solid #333;
+            padding: 15px;
+            width: 100%;
             color: #fff;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
+            border-radius: 10px;
             text-align: center;
+            margin-bottom: 20px;
             text-transform: uppercase;
         }
+        input:focus { outline: none; border-color: var(--primary); }
 
         .btn {
-            background: linear-gradient(135deg, #00c6ff, #0072ff);
+            background: linear-gradient(135deg, var(--secondary), #0072ff);
             border: none;
-            color: white;
             padding: 12px 30px;
-            border-radius: 50px;
-            font-size: 1rem;
+            color: white;
+            font-size: 1.1rem;
             font-weight: bold;
+            border-radius: 50px;
             cursor: pointer;
-            margin: 10px;
             transition: 0.2s;
-            box-shadow: 0 4px 15px rgba(0, 114, 255, 0.4);
+            margin: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
-
         .btn:hover { transform: scale(1.05); filter: brightness(1.2); }
-        .btn.secondary { background: linear-gradient(135deg, #4b6cb7, #182848); }
+        .btn:active { transform: scale(0.95); }
         .btn.danger { background: linear-gradient(135deg, #ff416c, #ff4b2b); }
+        .btn.success { background: linear-gradient(135deg, #11998e, #38ef7d); }
 
-        /* 存档槽位样式 */
-        .slot-container { display: flex; flex-direction: column; gap: 15px; max-height: 300px; overflow-y: auto; margin-bottom: 20px; }
-        .save-slot {
+        /* 存档列表 */
+        .slot-list { margin-bottom: 20px; max-height: 300px; overflow-y: auto; }
+        .slot-item {
             background: rgba(255,255,255,0.05);
             padding: 15px;
+            margin-bottom: 10px;
             border-radius: 10px;
-            border: 1px solid rgba(255,255,255,0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            cursor: pointer;
+            border: 1px solid transparent;
             transition: 0.2s;
         }
-        .save-slot:hover { background: rgba(255,255,255,0.1); border-color: var(--primary); }
-        .save-info { text-align: left; }
-        .save-meta { font-size: 0.8rem; color: #888; margin-top: 5px; }
-        .slot-actions { display: flex; gap: 10px; }
-        .delete-btn { color: var(--danger); background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 5px; }
+        .slot-item:hover { border-color: var(--primary); background: rgba(255,255,255,0.1); }
+        .slot-info { text-align: left; cursor: pointer; flex-grow: 1; }
+        .slot-title { font-weight: bold; color: var(--accent); }
+        .slot-date { font-size: 0.8rem; color: #888; }
+        .delete-icon { color: var(--danger); font-weight: bold; padding: 5px 10px; cursor: pointer; }
 
-        /* 游戏HUD */
-        .hud {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;
-            display: none; /* 游戏开始后显示 */
-        }
-        .hud-stats { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 10px; border-left: 3px solid var(--primary); }
-        .hud-skill-bar { 
+        /* HUD (游戏界面) */
+        .hud-top { position: absolute; top: 20px; left: 20px; pointer-events: none; }
+        .stat-box { background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 30px; margin-bottom: 10px; border-left: 4px solid var(--primary); display: inline-block; clear: both; float: left; }
+        
+        /* 技能栏 */
+        .skill-bar { 
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); 
-            display: flex; gap: 20px; pointer-events: auto; 
+            display: flex; gap: 20px; pointer-events: auto;
         }
-        .skill-box {
-            width: 60px; height: 60px; background: rgba(0,0,0,0.7); border: 2px solid #555; border-radius: 12px;
-            display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; overflow: hidden;
+        .skill-icon {
+            width: 60px; height: 60px; background: rgba(0,0,0,0.8); border: 2px solid #555; border-radius: 12px;
+            position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem; color: #fff; transition: 0.2s;
         }
-        .skill-box.active { border-color: var(--accent); box-shadow: 0 0 15px var(--accent); }
-        .skill-key { position: absolute; bottom: 2px; right: 5px; font-size: 0.7rem; color: #aaa; }
-        .cd-mask { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(0,0,0,0.8); height: 0%; transition: height 0.1s linear; }
+        .skill-icon.active { border-color: var(--accent); box-shadow: 0 0 20px var(--accent); transform: scale(1.1); }
+        .skill-key { position: absolute; bottom: 2px; right: 4px; font-size: 0.7rem; color: #aaa; }
+        .cooldown { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: rgba(0,0,0,0.7); transition: height 0.1s linear; }
 
-        /* 关卡通知特效 */
-        .level-title {
-            position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 4rem; font-weight: bold; opacity: 0; pointer-events: none;
-            text-shadow: 0 0 30px var(--primary);
-            transition: opacity 1s;
+        /* 浮动文字 */
+        .floating-text {
+            position: absolute; font-weight: bold; font-size: 1.2rem; pointer-events: none;
+            animation: floatUp 1s forwards; text-shadow: 0 0 5px black;
         }
+        @keyframes floatUp { 0% { opacity:1; transform:translateY(0); } 100% { opacity:0; transform:translateY(-50px); } }
+
+        /* 关卡遮罩 (深海模式) */
+        #darknessOverlay { display: none; }
     </style>
 </head>
 <body>
 
-    <canvas id="bgCanvas"></canvas>
-    
-    <div id="gameContainer" style="width:100%; height:100%; position: relative;">
-        <canvas id="gameCanvas"></canvas>
+    <canvas id="gameLayer"></canvas>
 
+    <div id="uiLayer">
+        
         <div id="loginPanel" class="panel" style="display: block;">
             <h1>深海霸主</h1>
-            <p style="margin-bottom: 20px; color: #aaa;">请输入您的代号 (拼音首字母)</p>
-            <input type="text" id="usernameInput" placeholder="例如: ZHANGSAN" maxlength="8">
-            <button class="btn" onclick="GameApp.login()">进入系统</button>
-            <p id="loginError" style="color: var(--danger); display: none; margin-top: 10px;">请输入有效的代号</p>
+            <p style="color: #aaa; margin-bottom: 15px;">输入您的代号 (拼音首字母)</p>
+            <input type="text" id="username" placeholder="例如: LZY" maxlength="10">
+            <button class="btn" id="btnLogin">进入系统</button>
         </div>
 
         <div id="menuPanel" class="panel">
-            <h2 id="welcomeText">欢迎回来</h2>
-            <div class="slot-container" id="slotList">
+            <h2>档案选择</h2>
+            <div id="welcomeMsg" style="margin-bottom: 15px; color: var(--secondary);"></div>
+            <div class="slot-list" id="slotContainer">
                 </div>
-            <button class="btn" onclick="GameApp.startNewGame()">+ 开始新征程</button>
-            <button class="btn secondary" onclick="GameApp.logout()">退出登录</button>
+            <button class="btn success" id="btnNewGame">创建新游戏</button>
+            <button class="btn danger" id="btnLogout">退出登录</button>
         </div>
 
-        <div id="levelCompletePanel" class="panel">
-            <h2 style="color: var(--accent);">霸主降临！</h2>
-            <p>你已统御了这片海域。</p>
-            <p style="margin: 20px 0;">当前关卡: <span id="finishLevelText">1</span></p>
-            <p style="color: #aaa; font-size: 0.9rem; margin-bottom: 30px;">前方是未知的深海禁区，危险系数极高...</p>
-            
-            <button class="btn" onclick="GameApp.nextLevel()">继续挑战 (进入深海)</button>
-            <button class="btn secondary" onclick="GameApp.saveAndQuit()">存档并休息</button>
+        <div id="transitionPanel" class="panel">
+            <h2 id="transTitle" style="color: var(--accent);">恭喜霸主!</h2>
+            <p id="transDesc">你已统治这片浅滩，但深海在呼唤...</p>
+            <div style="margin: 30px 0;">
+                <p>下一关: <span style="color:var(--danger); font-weight:bold;">深海禁区</span></p>
+                <p style="font-size:0.9rem; color:#aaa;">新增: 视野限制, 主动攻击怪物, 声纳技能</p>
+            </div>
+            <button class="btn success" id="btnContinue">继续挑战</button>
+            <button class="btn" id="btnSaveQuit">存档并休息</button>
         </div>
 
         <div id="gameOverPanel" class="panel">
-            <h2 style="color: var(--danger);">捕食者变成了猎物</h2>
-            <p>不要灰心，深海需要耐心。</p>
-            <button class="btn" onclick="GameApp.reloadLevel()">重新挑战本关</button>
-            <button class="btn secondary" onclick="GameApp.returnToMenu()">返回主菜单</button>
+            <h1 style="color: var(--danger);">你被吞噬了</h1>
+            <p>深海是残酷的...</p>
+            <button class="btn" onclick="Game.restartLevel()">重新挑战本关</button>
+            <button class="btn danger" onclick="UI.showMenu()">返回主菜单</button>
         </div>
 
-        <div id="hud" class="hud">
-            <div class="hud-stats">
-                <div>关卡: <span id="hudLevel" style="color: var(--accent); font-weight:bold;">1</span></div>
-                <div>体型: <span id="hudSize">0</span> / <span id="hudTarget">0</span> cm</div>
-                <div>生命: <span id="hudLives" style="color: var(--danger);">❤❤❤</span></div>
+        <div id="hud" style="display: none;">
+            <div class="hud-top">
+                <div class="stat-box">生命: <span id="uiLives" style="color: var(--danger);">❤❤❤</span></div>
+                <div class="stat-box">体型: <span id="uiSize">0</span> / <span id="uiTarget">0</span></div>
+                <div class="stat-box">关卡: <span id="uiLevelName">浅滩</span></div>
             </div>
-            <div class="level-title" id="levelAnnounce">LEVEL 1</div>
-            
-            <div class="hud-skill-bar">
-                <div class="skill-box" id="skillSpace">
-                    <span>⚡</span><span class="skill-key">SPACE</span>
-                    <div class="cd-mask" id="cdSpace"></div>
+
+            <div class="skill-bar">
+                <div class="skill-icon" id="skillDash">
+                    ⚡<span class="skill-key">SPACE</span>
+                    <div class="cooldown" id="cdDash"></div>
                 </div>
-                <div class="skill-box" id="skillE" style="display:none;">
-                    <span>🔊</span><span class="skill-key">E</span>
-                    <div class="cd-mask" id="cdE"></div>
+                <div class="skill-icon" id="skillSonar" style="display: none;">
+                    🔊<span class="skill-key">E</span>
+                    <div class="cooldown" id="cdSonar"></div>
                 </div>
             </div>
         </div>
@@ -188,194 +203,162 @@
 
 <script>
 /**
- * 游戏配置与数据结构
+ * 游戏核心代码
+ * 包含：存档管理、关卡设计、物理引擎、AI逻辑、渲染系统
  */
+
+// --- 配置 ---
 const CONFIG = {
+    maxSaves: 4,
     levels: [
-        {   // Level 1
-            id: 1,
-            name: "浅滩乐园",
-            bgType: "ocean",
+        {   // 关卡 0: 浅滩
+            name: "阳光浅滩",
+            bgColors: ["#00c6ff", "#0072ff"],
             targetSize: 50,
             startSize: 15,
-            enemyTypes: ['basic', 'basic', 'fast'],
-            darkness: 0,
-            unlocks: ['dash']
+            visibility: 1.0, // 全亮
+            drag: 0.96, // 水阻力
+            skills: ['dash'],
+            enemies: ['fish_small', 'fish_medium']
         },
-        {   // Level 2
-            id: 2,
+        {   // 关卡 1: 深海
             name: "深海禁区",
-            bgType: "deep",
+            bgColors: ["#0f0c29", "#302b63"],
             targetSize: 150,
-            startSize: 40, // 第二关初始体型较大
-            enemyTypes: ['angler', 'shark', 'whale'],
-            darkness: 0.85, // 视野限制
-            unlocks: ['dash', 'sonic']
+            startSize: 55,
+            visibility: 0.15, // 黑暗模式
+            drag: 0.94, // 阻力更大
+            skills: ['dash', 'sonar'],
+            enemies: ['fish_medium', 'angler', 'shark', 'whale']
         }
     ],
     skills: {
-        dash: { duration: 300, cd: 3000, speedMult: 3 },
-        sonic: { duration: 1000, cd: 8000, radius: 250 } // 声纳眩晕
+        dash: { cd: 3000, duration: 300, power: 3.5 },
+        sonar: { cd: 8000, duration: 1500, range: 300 } // 眩晕范围
     }
 };
 
-/* ================== 1. 存储与账户系统 ================== */
-const StorageSystem = {
-    currentUser: null,
+// --- 存储系统 ---
+const SaveSystem = {
+    user: null,
     
-    // 获取用户数据
-    getData(username) {
-        const raw = localStorage.getItem(`sea_game_${username}`);
-        return raw ? JSON.parse(raw) : { saves: [] };
+    getKey() { return `DS_SAVE_${this.user}`; },
+
+    getAllSaves() {
+        if(!this.user) return [];
+        const raw = localStorage.getItem(this.getKey());
+        return raw ? JSON.parse(raw) : [];
     },
 
-    // 保存用户数据
-    saveData(username, data) {
-        localStorage.setItem(`sea_game_${username}`, JSON.stringify(data));
-    },
-
-    // 添加新存档
-    addSave(levelIdx, score, date) {
-        let data = this.getData(this.currentUser);
-        // 限制最多4个存档
-        if (data.saves.length >= 4) {
-            alert("存档已满，请先删除旧存档！");
-            return false;
-        }
-        data.saves.push({
-            id: Date.now(),
-            level: levelIdx,
-            score: score,
-            date: date
-        });
-        this.saveData(this.currentUser, data);
-        return true;
-    },
-
-    // 更新现有存档（如果是在玩某个存档）
-    updateSave(saveId, levelIdx, score) {
-        let data = this.getData(this.currentUser);
-        const idx = data.saves.findIndex(s => s.id === saveId);
-        if (idx !== -1) {
-            data.saves[idx].level = levelIdx;
-            data.saves[idx].score = score;
-            data.saves[idx].date = new Date().toLocaleString();
-            this.saveData(this.currentUser, data);
+    saveProgress(slotId, levelIdx, score) {
+        let saves = this.getAllSaves();
+        const now = new Date().toLocaleString();
+        
+        // 如果是新存档
+        if (slotId === null) {
+            slotId = Date.now();
+            saves.push({ id: slotId, level: levelIdx, score: score, date: now });
         } else {
-            // 如果是新游戏，没ID，就创建新的
-            this.addSave(levelIdx, score, new Date().toLocaleString());
+            // 覆盖旧存档
+            const idx = saves.findIndex(s => s.id === slotId);
+            if (idx !== -1) {
+                saves[idx].level = levelIdx;
+                saves[idx].score = score;
+                saves[idx].date = now;
+            } else {
+                saves.push({ id: slotId, level: levelIdx, score: score, date: now });
+            }
         }
+        localStorage.setItem(this.getKey(), JSON.stringify(saves));
+        return slotId;
     },
 
-    deleteSave(saveId) {
-        let data = this.getData(this.currentUser);
-        data.saves = data.saves.filter(s => s.id !== saveId);
-        this.saveData(this.currentUser, data);
+    deleteSave(id) {
+        let saves = this.getAllSaves();
+        saves = saves.filter(s => s.id !== id);
+        localStorage.setItem(this.getKey(), JSON.stringify(saves));
     }
 };
 
-/* ================== 2. 游戏引擎逻辑 ================== */
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const bgCanvas = document.getElementById('bgCanvas');
-const bgCtx = bgCanvas.getContext('2d');
-
-let Game = {
-    state: 'MENU', // MENU, PLAYING, PAUSED
-    width: 0, height: 0,
-    currentLevelIdx: 0,
-    currentSaveId: null, // 当前正在玩的存档ID，如果是新游戏则为null
+// --- 游戏引擎 ---
+const Game = {
+    canvas: document.getElementById('gameLayer'),
+    ctx: document.getElementById('gameLayer').getContext('2d'),
+    width: window.innerWidth,
+    height: window.innerHeight,
     loopId: null,
+    state: 'MENU', // MENU, PLAYING, PAUSED, OVER
+    
+    currentSaveId: null,
+    levelIdx: 0,
     
     player: {
-        x: 0, y: 0, r: 0, vx: 0, vy: 0, 
-        angle: 0, lives: 3, score: 0,
-        skills: { dash: {cd:0, active:false}, sonic: {cd:0, active:false} }
+        x: 0, y: 0, vx: 0, vy: 0, r: 0, angle: 0,
+        color: '#00f2fe', lives: 3, score: 0, invincible: 0,
+        skills: { dash: {cd:0, active:false}, sonar: {cd:0, active:false} }
     },
+    
     enemies: [],
     particles: [],
+    keys: {},
 
     init() {
-        this.resize();
         window.addEventListener('resize', () => this.resize());
+        this.resize();
         this.bindInput();
+        
+        // 粒子循环清理
+        setInterval(() => {
+            if(this.state !== 'PLAYING') return;
+            this.particles = this.particles.filter(p => p.life > 0);
+        }, 1000);
     },
 
     resize() {
         this.width = window.innerWidth;
         this.height = window.innerHeight;
-        canvas.width = this.width; canvas.height = this.height;
-        bgCanvas.width = this.width; bgCanvas.height = this.height;
-        this.drawBackground();
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
     },
 
-    drawBackground() {
-        const level = CONFIG.levels[this.currentLevelIdx] || CONFIG.levels[0];
-        const grad = bgCtx.createLinearGradient(0, 0, 0, this.height);
-        
-        if (level.bgType === 'deep') {
-            grad.addColorStop(0, '#000000');
-            grad.addColorStop(1, '#0a192f'); // 深蓝黑
-        } else {
-            grad.addColorStop(0, '#006994');
-            grad.addColorStop(1, '#003366');
-        }
-        
-        bgCtx.fillStyle = grad;
-        bgCtx.fillRect(0, 0, this.width, this.height);
-        
-        // 绘制一些背景海草或气泡
-        bgCtx.fillStyle = 'rgba(255,255,255,0.05)';
-        for(let i=0; i<50; i++) {
-            bgCtx.beginPath();
-            bgCtx.arc(Math.random()*this.width, Math.random()*this.height, Math.random()*3, 0, Math.PI*2);
-            bgCtx.fill();
-        }
-    },
-
-    startLevel(levelIdx, saveId = null) {
-        this.currentLevelIdx = levelIdx;
+    startLevel(lvlIdx, saveId) {
+        this.levelIdx = lvlIdx;
         this.currentSaveId = saveId;
-        const levelCfg = CONFIG.levels[levelIdx];
-
+        const cfg = CONFIG.levels[lvlIdx];
+        
         // 初始化玩家
         this.player.x = this.width / 2;
         this.player.y = this.height / 2;
-        this.player.r = levelCfg.startSize;
         this.player.vx = 0; this.player.vy = 0;
+        this.player.r = cfg.startSize;
         this.player.lives = 3;
-        // 如果是继续游戏，分数可能需要读取（这里简化为关卡重置分数累计）
-        
+        this.player.invincible = 0;
+        // 清空技能CD
+        this.player.skills.dash.cd = 0;
+        this.player.skills.sonar.cd = 0;
+
         this.enemies = [];
         this.particles = [];
         this.state = 'PLAYING';
-        
-        // UI 更新
-        document.getElementById('hudLevel').innerText = levelCfg.name;
-        document.getElementById('hudTarget').innerText = levelCfg.targetSize;
-        
-        // 技能图标显示
-        document.getElementById('skillE').style.display = levelCfg.unlocks.includes('sonic') ? 'flex' : 'none';
 
-        // 关卡公告动画
-        const title = document.getElementById('levelAnnounce');
-        title.innerText = levelCfg.name;
-        title.style.opacity = 1;
-        title.style.transform = "translate(-50%, -50%) scale(1.2)";
-        setTimeout(() => { 
-            title.style.opacity = 0; 
-            title.style.transform = "translate(-50%, -50%) scale(1)";
-        }, 2000);
+        UI.updateHUD(cfg);
+        UI.hideAllPanels();
+        document.getElementById('hud').style.display = 'block';
 
-        this.drawBackground(); // 重绘背景
+        if(this.loopId) cancelAnimationFrame(this.loopId);
         this.loop();
+    },
+
+    restartLevel() {
+        this.startLevel(this.levelIdx, this.currentSaveId);
     },
 
     loop() {
         if (this.state !== 'PLAYING') return;
 
-        ctx.clearRect(0, 0, this.width, this.height);
-        
+        // 清空
+        this.ctx.clearRect(0, 0, this.width, this.height);
+
         this.update();
         this.draw();
 
@@ -384,441 +367,489 @@ let Game = {
 
     update() {
         const p = this.player;
-        const levelCfg = CONFIG.levels[this.currentLevelIdx];
+        const cfg = CONFIG.levels[this.levelIdx];
+        const drag = cfg.drag;
 
-        // 1. 玩家移动 (物理惯性)
-        let speed = 4;
-        if (p.skills.dash.active) speed *= CONFIG.skills.dash.speedMult;
-        // 深海阻力大
-        if (levelCfg.bgType === 'deep') speed *= 0.8;
-
-        if (Input.keys['ArrowUp']) p.vy -= 0.5;
-        if (Input.keys['ArrowDown']) p.vy += 0.5;
-        if (Input.keys['ArrowLeft']) p.vx -= 0.5;
-        if (Input.keys['ArrowRight']) p.vx += 0.5;
-
-        p.vx *= 0.95; p.vy *= 0.95; // 摩擦
-        // 限速
-        const v = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
-        if (v > speed) { p.vx = (p.vx/v)*speed; p.vy = (p.vy/v)*speed; }
-
-        p.x += p.vx; p.y += p.vy;
+        // 1. 玩家移动
+        let speed = 0.5; // 加速度
+        let maxSpeed = 6 * (30 / (p.r + 10)); // 体型越大越慢
         
+        if (p.skills.dash.active) maxSpeed *= CONFIG.skills.dash.power;
+
+        if (this.keys['ArrowUp'] || this.keys['w']) p.vy -= speed;
+        if (this.keys['ArrowDown'] || this.keys['s']) p.vy += speed;
+        if (this.keys['ArrowLeft'] || this.keys['a']) p.vx -= speed;
+        if (this.keys['ArrowRight'] || this.keys['d']) p.vx += speed;
+
+        // 摩擦力
+        p.vx *= drag; p.vy *= drag;
+        
+        // 更新位置
+        p.x += p.vx; p.y += p.vy;
+
         // 边界
-        if(p.x < p.r) p.x = p.r; if(p.x > this.width - p.r) p.x = this.width - p.r;
-        if(p.y < p.r) p.y = p.r; if(p.y > this.height - p.r) p.y = this.height - p.r;
+        if(p.x < p.r) { p.x = p.r; p.vx *= -1; }
+        if(p.x > this.width - p.r) { p.x = this.width - p.r; p.vx *= -1; }
+        if(p.y < p.r) { p.y = p.r; p.vy *= -1; }
+        if(p.y > this.height - p.r) { p.y = this.height - p.r; p.vy *= -1; }
 
         // 角度
-        if (v > 0.1) p.angle = Math.atan2(p.vy, p.vx);
+        const vel = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+        if (vel > 0.1) p.angle = Math.atan2(p.vy, p.vx);
 
         // 2. 敌人生成
-        if (this.enemies.length < 15 + this.currentLevelIdx * 5 && Math.random() < 0.03) {
-            this.spawnEnemy(levelCfg);
+        if (this.enemies.length < 15 && Math.random() < 0.02) {
+            this.spawnEnemy(cfg);
         }
 
-        // 3. 敌人逻辑与碰撞
+        // 3. 敌人逻辑
         this.enemies.forEach((e, i) => {
-            // 特殊AI: 鲨鱼追踪
-            if (e.type === 'shark' && !p.skills.sonic.active) {
-                const dx = p.x - e.x; const dy = p.y - e.y;
+            // AI: 鲨鱼追踪
+            if (e.type === 'shark' && !e.stunned) {
+                const dx = p.x - e.x;
+                const dy = p.y - e.y;
                 const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < 400) { // 视野
-                    e.vx += (dx/dist) * 0.1;
-                    e.vy += (dy/dist) * 0.1;
+                if (dist < 500) { // 视野
+                    e.vx += (dx/dist) * 0.15;
+                    e.vy += (dy/dist) * 0.15;
                 }
             }
-            // 眩晕逻辑
+
+            // 眩晕状态
             if (e.stunned > 0) {
                 e.stunned--;
-                e.vx *= 0.5; e.vy *= 0.5; // 减速
+                e.vx *= 0.9; e.vy *= 0.9;
             } else {
                 e.x += e.vx; e.y += e.vy;
             }
 
-            // 移除出界
-            if (e.x < -200 || e.x > this.width + 200) { this.enemies.splice(i, 1); return; }
+            // 出界移除
+            if (e.x < -200 || e.x > this.width + 200) this.enemies.splice(i, 1);
 
-            // 碰撞
-            const dx = p.x - e.x; const dy = p.y - e.y;
+            // 碰撞检测
+            const dx = p.x - e.x;
+            const dy = p.y - e.y;
             const dist = Math.sqrt(dx*dx + dy*dy);
-            
-            if (dist < p.r + e.r) {
-                if (p.r > e.r) {
+
+            if (dist < p.r + e.r * 0.9) {
+                if (p.r > e.r * 1.1) {
                     // 吃掉
-                    p.r += e.r * 0.05;
+                    p.r += e.r * 0.08;
                     p.score += Math.floor(e.r);
+                    UI.floatText(`+${Math.floor(e.r)}`, e.x, e.y, '#ffd700');
+                    this.createExplosion(e.x, e.y, e.color);
                     this.enemies.splice(i, 1);
-                    this.createParticles(e.x, e.y, e.color, 5);
+                    
+                    // 更新UI
+                    document.getElementById('uiSize').innerText = Math.floor(p.r);
+
                     // 检查过关
-                    if (p.r >= levelCfg.targetSize) {
-                        GameApp.levelComplete();
+                    if (p.r >= cfg.targetSize) {
+                        this.levelComplete();
                     }
-                } else {
+                } else if (e.r > p.r) {
                     // 受伤
-                    if (!p.invincible) {
+                    if (p.invincible <= 0 && !p.skills.dash.active) { // 冲刺时也稍微无敌一下
                         p.lives--;
-                        p.invincible = true;
-                        this.createParticles(p.x, p.y, '#ff0000', 10);
-                        setTimeout(() => p.invincible = false, 1500);
-                        if (p.lives <= 0) GameApp.gameOver();
+                        p.invincible = 120; // 2秒
+                        UI.updateLives();
+                        UI.floatText("-1 生命", p.x, p.y, '#ff4757');
+                        this.createExplosion(p.x, p.y, '#ff0000');
+                        // 震动特效
+                        document.body.style.transform = "translate(5px, 5px)";
+                        setTimeout(()=> document.body.style.transform = "translate(0,0)", 50);
+
+                        if (p.lives <= 0) {
+                            this.state = 'OVER';
+                            UI.showGameOver();
+                        }
                     }
                 }
             }
         });
 
-        // 4. 技能CD
-        for(let key in p.skills) {
-            if(p.skills[key].cd > 0) p.skills[key].cd -= 16; // approx 60fps
-        }
+        if (p.invincible > 0) p.invincible--;
 
-        // UI Update
-        document.getElementById('hudSize').innerText = Math.floor(p.r);
-        document.getElementById('hudLives').innerText = "❤".repeat(p.lives);
-        this.updateSkillUI('Space', 'dash');
-        this.updateSkillUI('E', 'sonic');
+        // 4. 技能CD
+        for (let k in p.skills) {
+            if (p.skills[k].cd > 0) {
+                p.skills[k].cd -= 16; // 约60fps
+                UI.updateSkillCD(k);
+            }
+        }
     },
 
-    spawnEnemy(levelCfg) {
-        const type = levelCfg.enemyTypes[Math.floor(Math.random() * levelCfg.enemyTypes.length)];
-        let e = { x: 0, y: Math.random()*this.height, vx: 0, vy: 0, r: 10, color: '#fff', type: type, stunned: 0 };
+    spawnEnemy(cfg) {
+        const type = cfg.enemies[Math.floor(Math.random() * cfg.enemies.length)];
+        let e = { x: 0, y: Math.random() * this.height, vx: 0, vy: 0, r: 10, color: '#fff', type: type, stunned: 0 };
         
-        // 根据类型配置属性
-        if (type === 'basic') { e.r = 5 + Math.random()*15; e.color = '#ff9f43'; e.vx = 2; }
-        else if (type === 'fast') { e.r = 10 + Math.random()*10; e.color = '#00d2d3'; e.vx = 4; }
-        else if (type === 'angler') { e.r = 20 + Math.random()*20; e.color = '#5f27cd'; e.vx = 1.5; } // 灯笼鱼
-        else if (type === 'shark') { e.r = 35 + Math.random()*30; e.color = '#576574'; e.vx = 3; } // 鲨鱼
-        else if (type === 'whale') { e.r = 80 + Math.random()*40; e.color = '#222f3e'; e.vx = 0.5; } // 鲸鱼
+        // 左右出生
+        const left = Math.random() > 0.5;
+        e.x = left ? -100 : this.width + 100;
+        let dir = left ? 1 : -1;
 
-        // 左右生成
-        if (Math.random() > 0.5) { e.x = -50; } else { e.x = this.width+50; e.vx *= -1; }
-        e.angle = Math.atan2(e.vy, e.vx);
+        switch(type) {
+            case 'fish_small':
+                e.r = 5 + Math.random() * 10; e.color = '#ff9f43'; e.vx = 2 * dir;
+                break;
+            case 'fish_medium':
+                e.r = 20 + Math.random() * 20; e.color = '#54a0ff'; e.vx = 1.5 * dir;
+                break;
+            case 'angler': // 灯笼鱼
+                e.r = 30 + Math.random() * 15; e.color = '#a55eea'; e.vx = 1.2 * dir;
+                break;
+            case 'shark': // 鲨鱼
+                e.r = 45 + Math.random() * 30; e.color = '#636e72'; e.vx = 3.5 * dir;
+                break;
+            case 'whale': // 鲸鱼
+                e.r = 100 + Math.random() * 50; e.color = '#2d3436'; e.vx = 0.5 * dir;
+                break;
+        }
         
+        // 基于玩家大小微调敌人大小，防止一直没有能吃的
+        // 如果玩家很大，增加生成大鱼的概率（这里简化处理）
+        if (Math.random() < 0.3) e.r = this.player.r * (0.5 + Math.random() * 0.4); 
+
         this.enemies.push(e);
     },
 
     draw() {
+        const ctx = this.ctx;
         const p = this.player;
-        const levelCfg = CONFIG.levels[this.currentLevelIdx];
+        const cfg = CONFIG.levels[this.levelIdx];
 
-        // 1. 视野限制 (深海模式)
-        if (levelCfg.darkness > 0) {
-            // 创建一个遮罩，只有玩家周围是亮的
-            ctx.fillStyle = `rgba(0,0,0,${levelCfg.darkness})`;
+        // 1. 绘制背景
+        const grad = ctx.createLinearGradient(0, 0, 0, this.height);
+        grad.addColorStop(0, cfg.bgColors[0]);
+        grad.addColorStop(1, cfg.bgColors[1]);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        // 2. 视野限制（深海效果）
+        if (cfg.visibility < 1.0) {
+            // 先画黑
+            ctx.fillStyle = `rgba(0,0,0,${1 - cfg.visibility})`;
             ctx.fillRect(0, 0, this.width, this.height);
             
-            // 挖洞 (使用 composite operation)
+            // 挖空（玩家光环）
             ctx.globalCompositeOperation = 'destination-out';
             
-            // 玩家光环
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r * 4 + 100, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(0,0,0,1)';
-            ctx.fill();
+            // 玩家周围亮
+            const gradP = ctx.createRadialGradient(p.x, p.y, p.r, p.x, p.y, p.r + 300);
+            gradP.addColorStop(0, 'rgba(0,0,0,1)');
+            gradP.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.fillStyle = gradP;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r + 300, 0, Math.PI*2); ctx.fill();
 
-            // 灯笼鱼光环
+            // 灯笼鱼亮
             this.enemies.forEach(e => {
                 if (e.type === 'angler') {
-                    ctx.beginPath();
-                    ctx.arc(e.x + Math.cos(e.angle)*e.r, e.y + Math.sin(e.angle)*e.r, e.r * 2, 0, Math.PI*2);
-                    ctx.fill();
+                    const gradE = ctx.createRadialGradient(e.x, e.y, e.r/2, e.x, e.y, e.r + 150);
+                    gradE.addColorStop(0, 'rgba(0,0,0,1)');
+                    gradE.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = gradE;
+                    ctx.beginPath(); ctx.arc(e.x, e.y, e.r + 150, 0, Math.PI*2); ctx.fill();
                 }
             });
 
             ctx.globalCompositeOperation = 'source-over';
         }
 
-        // 2. 绘制玩家
+        // 3. 绘制玩家
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.angle);
-        
-        if (p.invincible && Math.floor(Date.now()/100)%2===0) ctx.globalAlpha = 0.5;
+        if (p.invincible > 0 && Math.floor(Date.now()/50)%2) ctx.globalAlpha = 0.5;
 
         // 身体
         ctx.beginPath();
-        ctx.ellipse(0, 0, p.r, p.r*0.6, 0, 0, Math.PI*2);
-        ctx.fillStyle = '#00f2fe';
+        ctx.ellipse(0, 0, p.r, p.r * 0.7, 0, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        
+        // 冲刺变色
+        if (p.skills.dash.active) {
+            ctx.shadowBlur = 20; ctx.shadowColor = '#fff'; ctx.fillStyle = '#fff';
+        }
         ctx.fill();
+        ctx.shadowBlur = 0;
+
         // 尾巴
         ctx.beginPath();
-        ctx.moveTo(-p.r*0.8, 0);
-        ctx.lineTo(-p.r*1.6, -p.r*0.6);
-        ctx.lineTo(-p.r*1.6, p.r*0.6);
+        const tailWiggle = Math.sin(Date.now() / 100) * (p.r * 0.2);
+        ctx.moveTo(-p.r * 0.8, 0);
+        ctx.lineTo(-p.r * 1.8, -p.r * 0.6 + tailWiggle);
+        ctx.lineTo(-p.r * 1.8, p.r * 0.6 + tailWiggle);
         ctx.fill();
 
-        // 技能特效：声纳
-        if (p.skills.sonic.active) {
-            ctx.beginPath();
-            ctx.arc(0, 0, p.r + 50 + Math.random()*20, 0, Math.PI*2);
-            ctx.strokeStyle = '#ffd700';
-            ctx.lineWidth = 3;
-            ctx.stroke();
+        // 声纳特效
+        if (p.skills.sonar.active) {
+             ctx.beginPath();
+             ctx.arc(0, 0, CONFIG.skills.sonar.range, 0, Math.PI*2);
+             ctx.strokeStyle = `rgba(255, 215, 0, ${Math.random()})`;
+             ctx.lineWidth = 5;
+             ctx.stroke();
         }
 
         ctx.restore();
 
-        // 3. 绘制敌人
+        // 4. 绘制敌人
         this.enemies.forEach(e => {
             ctx.save();
             ctx.translate(e.x, e.y);
-            // 鲨鱼面向移动方向，其他可能根据vx
+            // 简单的朝向判断
             let angle = Math.atan2(e.vy, e.vx);
-            if(e.type === 'shark') angle = Math.atan2(e.vy, e.vx);
+            if(Math.abs(e.vx) < 0.1 && e.type==='shark') angle = Math.atan2(p.y-e.y, p.x-e.x);
             ctx.rotate(angle);
 
-            if (e.stunned > 0) ctx.globalAlpha = 0.5; // 眩晕效果
+            if (e.stunned > 0) ctx.globalAlpha = 0.4;
 
-            // 绘制逻辑
             ctx.fillStyle = e.color;
             ctx.beginPath();
             
-            if (e.type === 'whale') {
-                ctx.ellipse(0, 0, e.r, e.r*0.5, 0, 0, Math.PI*2); // 胖一点
-            } else if (e.type === 'shark') {
-                 // 鲨鱼尖头
-                ctx.moveTo(e.r, 0);
-                ctx.lineTo(-e.r, -e.r*0.5);
-                ctx.lineTo(-e.r, e.r*0.5);
-                ctx.fill();
-                // 背鳍
-                ctx.beginPath(); ctx.moveTo(0, -e.r*0.3); ctx.lineTo(-e.r*0.5, -e.r); ctx.lineTo(e.r*0.2, -e.r*0.3); ctx.fill();
-            } else if (e.type === 'angler') {
-                // 圆体
-                ctx.arc(0, 0, e.r*0.8, 0, Math.PI*2);
-                ctx.fill();
-                // 灯
-                ctx.beginPath(); ctx.moveTo(0, -e.r*0.6); ctx.lineTo(e.r, -e.r*1.2); ctx.stroke();
-                ctx.beginPath(); ctx.arc(e.r, -e.r*1.2, 3, 0, Math.PI*2); ctx.fillStyle='#ffff00'; ctx.fill();
+            if (e.type === 'shark') {
+                // 鲨鱼三角形
+                ctx.moveTo(e.r, 0); ctx.lineTo(-e.r, -e.r*0.6); ctx.lineTo(-e.r, e.r*0.6);
+            } else if (e.type === 'whale') {
+                // 鲸鱼
+                ctx.ellipse(0, 0, e.r, e.r*0.5, 0, 0, Math.PI*2);
             } else {
                 // 普通鱼
-                ctx.ellipse(0, 0, e.r, e.r*0.6, 0, 0, Math.PI*2);
-                ctx.fill();
-                ctx.beginPath(); ctx.moveTo(-e.r*0.5, 0); ctx.lineTo(-e.r*1.5, -e.r*0.5); ctx.lineTo(-e.r*1.5, e.r*0.5); ctx.fill();
+                ctx.ellipse(0, 0, e.r, e.r*0.7, 0, 0, Math.PI*2);
             }
+            ctx.fill();
             
-            ctx.fillStyle = e.color; // Reset for specific fills above if needed
-            if(e.type !== 'shark') ctx.fill();
+            // 灯笼鱼的灯
+            if (e.type === 'angler') {
+                ctx.beginPath(); ctx.moveTo(e.r*0.5, -e.r*0.5); ctx.lineTo(e.r*0.8, -e.r*1.2); 
+                ctx.strokeStyle = '#fff'; ctx.stroke();
+                ctx.beginPath(); ctx.arc(e.r*0.8, -e.r*1.2, 5, 0, Math.PI*2); 
+                ctx.fillStyle = '#ffff00'; ctx.fill();
+            }
 
             ctx.restore();
         });
 
-        // 4. 粒子特效
-        this.particles.forEach((p, i) => {
-            p.x += p.vx; p.y += p.vy; p.life -= 0.05;
-            ctx.globalAlpha = p.life;
-            ctx.fillStyle = p.color;
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2); ctx.fill();
-            if(p.life <= 0) this.particles.splice(i, 1);
+        // 5. 绘制粒子
+        this.particles.forEach(pt => {
+            ctx.globalAlpha = pt.life;
+            ctx.fillStyle = pt.color;
+            ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI*2); ctx.fill();
+            pt.life -= 0.05;
+            pt.x += pt.vx; pt.y += pt.vy;
         });
         ctx.globalAlpha = 1;
     },
 
-    createParticles(x, y, color, count) {
-        for(let i=0; i<count; i++) {
+    createExplosion(x, y, color) {
+        for(let i=0; i<8; i++) {
             this.particles.push({
-                x:x, y:y, vx:(Math.random()-0.5)*5, vy:(Math.random()-0.5)*5, 
-                r:Math.random()*3, color:color, life:1
+                x:x, y:y, r:Math.random()*5, color:color, 
+                vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, life:1
             });
         }
     },
 
-    updateSkillUI(keyName, skillId) {
-        const skill = this.player.skills[skillId];
-        const cfg = CONFIG.skills[skillId];
-        const mask = document.getElementById('cd'+keyName);
-        const box = document.getElementById('skill'+keyName);
-        
-        if (skill.cd > 0) {
-            mask.style.height = (skill.cd / cfg.cd * 100) + '%';
-            box.classList.remove('active');
-        } else {
-            mask.style.height = '0%';
-            if (skill.active) box.classList.add('active');
-            else box.classList.remove('active');
-        }
-    },
-
-    // 技能释放
-    activateSkill(skillName) {
-        const skill = this.player.skills[skillName];
-        const cfg = CONFIG.skills[skillName];
-        
-        if (skill.cd <= 0 && !skill.active) {
-            skill.active = true;
-            skill.cd = cfg.cd;
-
-            if (skillName === 'sonic') {
-                // 声纳：眩晕范围内敌人
-                this.enemies.forEach(e => {
-                    const d = Math.sqrt((e.x-this.player.x)**2 + (e.y-this.player.y)**2);
-                    if (d < cfg.radius) e.stunned = 120; // 2秒 (60fps)
-                });
-            }
-
-            setTimeout(() => { skill.active = false; }, cfg.duration);
-        }
+    levelComplete() {
+        this.state = 'PAUSED';
+        UI.showTransition();
     },
 
     bindInput() {
         window.addEventListener('keydown', e => {
-            Input.keys[e.code] = true;
-            if (this.state === 'PLAYING') {
-                if (e.code === 'Space') this.activateSkill('dash');
-                if (e.code === 'KeyE' && CONFIG.levels[this.currentLevelIdx].unlocks.includes('sonic')) this.activateSkill('sonic');
+            this.keys[e.key] = true;
+            if(this.state === 'PLAYING') {
+                if(e.code === 'Space') this.useSkill('dash');
+                if(e.code === 'KeyE') this.useSkill('sonar');
             }
         });
-        window.addEventListener('keyup', e => Input.keys[e.code] = false);
+        window.addEventListener('keyup', e => this.keys[e.key] = false);
+    },
+
+    useSkill(name) {
+        // 检查关卡是否允许
+        const cfg = CONFIG.levels[this.levelIdx];
+        if (!cfg.skills.includes(name)) return;
+
+        const skill = this.player.skills[name];
+        const sCfg = CONFIG.skills[name];
+        
+        if (skill.cd <= 0 && !skill.active) {
+            skill.active = true;
+            skill.cd = sCfg.cd;
+            
+            if (name === 'sonar') {
+                // 震晕逻辑
+                this.enemies.forEach(e => {
+                    const d = Math.sqrt((e.x-this.player.x)**2 + (e.y-this.player.y)**2);
+                    if (d < sCfg.range) e.stunned = 180; // 3秒
+                });
+                UI.floatText("声纳冲击!", this.player.x, this.player.y - 50, '#ffd700');
+            } else {
+                UI.floatText("冲刺!", this.player.x, this.player.y - 50, '#fff');
+            }
+
+            setTimeout(() => { skill.active = false; }, sCfg.duration);
+        }
     }
 };
 
-const Input = { keys: {} };
+// --- UI 控制 ---
+const UI = {
+    // DOM 元素引用
+    loginPanel: document.getElementById('loginPanel'),
+    menuPanel: document.getElementById('menuPanel'),
+    transPanel: document.getElementById('transitionPanel'),
+    gameLayer: document.getElementById('gameLayer'),
 
-/* ================== 3. UI 交互控制 ================== */
-const GameApp = {
-    login() {
-        const input = document.getElementById('usernameInput');
-        const username = input.value.trim().toUpperCase();
-        const regex = /^[A-Z]+$/;
-
-        if (username && regex.test(username)) {
-            StorageSystem.currentUser = username;
-            document.getElementById('loginPanel').style.display = 'none';
-            this.showMenu();
-        } else {
-            document.getElementById('loginError').style.display = 'block';
-        }
+    init() {
+        // 绑定按钮事件
+        document.getElementById('btnLogin').onclick = () => this.handleLogin();
+        document.getElementById('btnLogout').onclick = () => this.handleLogout();
+        document.getElementById('btnNewGame').onclick = () => this.handleNewGame();
+        document.getElementById('btnContinue').onclick = () => this.handleNextLevel();
+        document.getElementById('btnSaveQuit').onclick = () => this.handleSaveQuit();
     },
 
-    logout() {
-        StorageSystem.currentUser = null;
-        document.getElementById('menuPanel').style.display = 'none';
-        document.getElementById('loginPanel').style.display = 'block';
+    hideAllPanels() {
+        document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+    },
+
+    handleLogin() {
+        const name = document.getElementById('username').value.trim().toUpperCase();
+        if(!name) return alert("请输入代号");
+        const regex = /^[A-Z]+$/;
+        if(!regex.test(name)) return alert("代号只能包含字母");
+        
+        SaveSystem.user = name;
+        this.showMenu();
+    },
+
+    handleLogout() {
+        SaveSystem.user = null;
+        this.hideAllPanels();
+        this.loginPanel.style.display = 'block';
     },
 
     showMenu() {
-        const panel = document.getElementById('menuPanel');
-        document.getElementById('welcomeText').innerText = `欢迎回来, ${StorageSystem.currentUser}`;
-        panel.style.display = 'block';
-        this.renderSlots();
-        
-        // 隐藏其他
+        this.hideAllPanels();
+        this.menuPanel.style.display = 'block';
         document.getElementById('hud').style.display = 'none';
-        document.getElementById('gameCanvas').style.opacity = 0.3;
-        Game.state = 'MENU';
-    },
-
-    renderSlots() {
-        const container = document.getElementById('slotList');
+        document.getElementById('welcomeMsg').innerText = `指挥官 ${SaveSystem.user}, 请选择行动档案`;
+        
+        const container = document.getElementById('slotContainer');
         container.innerHTML = '';
-        const data = StorageSystem.getData(StorageSystem.currentUser);
-
-        if (data.saves.length === 0) {
-            container.innerHTML = '<div style="color:#aaa; padding:20px;">暂无存档</div>';
-            return;
-        }
-
-        data.saves.forEach(save => {
-            const levelName = CONFIG.levels[save.level] ? CONFIG.levels[save.level].name : "未知海域";
-            const div = document.createElement('div');
-            div.className = 'save-slot';
-            div.innerHTML = `
-                <div class="save-info" onclick="GameApp.loadGame(${save.id}, ${save.level})">
-                    <div style="color:var(--primary); font-weight:bold;">${levelName}</div>
-                    <div class="save-meta">分数: ${save.score} | 时间: ${save.date}</div>
-                </div>
-                <div class="slot-actions">
-                    <button class="delete-btn" onclick="GameApp.deleteSave(${save.id})">×</button>
-                </div>
-            `;
-            container.appendChild(div);
-        });
-    },
-
-    startNewGame() {
-        document.getElementById('menuPanel').style.display = 'none';
-        this.startGameUI();
-        Game.startLevel(0, null); // Level 1, no save ID yet
-    },
-
-    loadGame(saveId, levelIdx) {
-        document.getElementById('menuPanel').style.display = 'none';
-        this.startGameUI();
-        Game.startLevel(levelIdx, saveId);
-    },
-
-    deleteSave(id) {
-        if(confirm("确定要删除这个存档吗？")) {
-            StorageSystem.deleteSave(id);
-            this.renderSlots();
-        }
-    },
-
-    startGameUI() {
-        document.getElementById('gameCanvas').style.opacity = 1;
-        document.getElementById('hud').style.display = 'block';
-        document.getElementById('levelCompletePanel').style.display = 'none';
-        document.getElementById('gameOverPanel').style.display = 'none';
-    },
-
-    levelComplete() {
-        Game.state = 'PAUSED';
-        const panel = document.getElementById('levelCompletePanel');
-        document.getElementById('finishLevelText').innerText = CONFIG.levels[Game.currentLevelIdx].name;
         
-        // 检查是否还有下一关
-        const nextBtn = panel.querySelector('.btn');
-        if (Game.currentLevelIdx + 1 >= CONFIG.levels.length) {
-            nextBtn.innerText = "通关！回到主菜单";
-            nextBtn.onclick = () => this.returnToMenu();
+        const saves = SaveSystem.getAllSaves();
+        if(saves.length === 0) {
+            container.innerHTML = '<div style="color:#aaa; padding:10px;">暂无档案</div>';
         } else {
-            nextBtn.innerText = "继续挑战 (进入下一关)";
-            nextBtn.onclick = () => this.nextLevel();
+            saves.forEach(s => {
+                const lvlName = CONFIG.levels[s.level] ? CONFIG.levels[s.level].name : "未知海域";
+                const item = document.createElement('div');
+                item.className = 'slot-item';
+                item.innerHTML = `
+                    <div class="slot-info" onclick="Game.startLevel(${s.level}, ${s.id})">
+                        <div class="slot-title">${lvlName} (Lv.${s.level+1})</div>
+                        <div class="slot-date">分数: ${s.score} | ${s.date}</div>
+                    </div>
+                    <div class="delete-icon" onclick="UI.deleteSlot(${s.id})">×</div>
+                `;
+                container.appendChild(item);
+            });
         }
+    },
+
+    deleteSlot(id) {
+        if(confirm("确认销毁此档案？")) {
+            SaveSystem.deleteSave(id);
+            this.showMenu();
+        }
+    },
+
+    handleNewGame() {
+        const saves = SaveSystem.getAllSaves();
+        if (saves.length >= CONFIG.maxSaves) return alert("档案存储已满，请先删除旧档案");
+        Game.startLevel(0, null); // 从第0关开始，无存档ID
+    },
+
+    updateHUD(cfg) {
+        document.getElementById('uiLevelName').innerText = cfg.name;
+        document.getElementById('uiTarget').innerText = cfg.targetSize;
+        document.getElementById('uiSize').innerText = cfg.startSize;
         
-        panel.style.display = 'block';
+        // 技能图标显示逻辑
+        document.getElementById('skillSonar').style.display = cfg.skills.includes('sonar') ? 'flex' : 'none';
+        this.updateLives();
     },
 
-    nextLevel() {
-        const nextIdx = Game.currentLevelIdx + 1;
-        // 如果有存档ID，自动保存进度
-        if (Game.currentSaveId) {
-            StorageSystem.updateSave(Game.currentSaveId, nextIdx, Game.player.score);
+    updateLives() {
+        document.getElementById('uiLives').innerText = "❤".repeat(Game.player.lives);
+    },
+
+    updateSkillCD(skillName) {
+        const skill = Game.player.skills[skillName];
+        const max = CONFIG.skills[skillName].cd;
+        const domId = skillName === 'dash' ? 'cdDash' : 'cdSonar';
+        const percent = (skill.cd / max) * 100;
+        document.getElementById(domId).style.height = percent + '%';
+        
+        const iconId = skillName === 'dash' ? 'skillDash' : 'skillSonar';
+        if (skill.cd <= 0) document.getElementById(iconId).classList.add('active');
+        else document.getElementById(iconId).classList.remove('active');
+    },
+
+    showTransition() {
+        this.hideAllPanels();
+        this.transPanel.style.display = 'block';
+        
+        // 检查是否通关
+        if (Game.levelIdx + 1 >= CONFIG.levels.length) {
+            document.getElementById('transTitle').innerText = "深海霸主降临";
+            document.getElementById('transDesc').innerText = "你已征服所有已知海域！";
+            document.getElementById('btnContinue').style.display = 'none';
+            document.getElementById('btnSaveQuit').innerText = "荣耀归档";
+        } else {
+            document.getElementById('btnContinue').style.display = 'inline-block';
+            document.getElementById('btnSaveQuit').innerText = "存档并休息";
         }
-        this.startGameUI();
-        Game.startLevel(nextIdx, Game.currentSaveId);
     },
 
-    saveAndQuit() {
+    handleNextLevel() {
+        const nextIdx = Game.levelIdx + 1;
+        // 自动存档
+        const saveId = SaveSystem.saveProgress(Game.currentSaveId, nextIdx, Game.player.score);
+        Game.startLevel(nextIdx, saveId);
+    },
+
+    handleSaveQuit() {
         // 保存当前进度的下一关
-        const nextIdx = Game.currentLevelIdx + 1 < CONFIG.levels.length ? Game.currentLevelIdx + 1 : Game.currentLevelIdx;
-        if (Game.currentSaveId) {
-            StorageSystem.updateSave(Game.currentSaveId, nextIdx, Game.player.score);
-        } else {
-            StorageSystem.addSave(nextIdx, Game.player.score, new Date().toLocaleString());
-        }
+        const nextIdx = Math.min(Game.levelIdx + 1, CONFIG.levels.length - 1);
+        SaveSystem.saveProgress(Game.currentSaveId, nextIdx, Game.player.score);
         this.showMenu();
-        document.getElementById('levelCompletePanel').style.display = 'none';
     },
-
-    gameOver() {
-        Game.state = 'GAME_OVER';
+    
+    showGameOver() {
+        this.hideAllPanels();
         document.getElementById('gameOverPanel').style.display = 'block';
     },
 
-    reloadLevel() {
-        this.startGameUI();
-        Game.startLevel(Game.currentLevelIdx, Game.currentSaveId);
-    },
-
-    returnToMenu() {
-        this.showMenu();
-        document.getElementById('gameOverPanel').style.display = 'none';
-        document.getElementById('levelCompletePanel').style.display = 'none';
+    floatText(text, x, y, color) {
+        const el = document.createElement('div');
+        el.className = 'floating-text';
+        el.innerText = text;
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+        el.style.color = color;
+        document.getElementById('uiLayer').appendChild(el);
+        setTimeout(() => el.remove(), 1000);
     }
 };
 
-// 启动
-Game.init();
+// 启动入口
+window.onload = function() {
+    Game.init();
+    UI.init();
+};
 
 </script>
 </body>
