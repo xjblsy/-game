@@ -3,18 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Deep Sea Evolution: Final</title>
+    <title>Deep Sea Evolution: Living World</title>
     <style>
         :root {
             --cyan: #00f2fe;
             --gold: #ffd700;
             --pink: #ff0055;
-            --bg: #000510;
-            --panel-bg: rgba(15, 25, 40, 0.95);
+            --panel-bg: rgba(10, 20, 35, 0.92);
         }
 
         body {
-            margin: 0; padding: 0; background: var(--bg);
+            margin: 0; padding: 0; background: #000;
             overflow: hidden; font-family: 'Microsoft YaHei', sans-serif;
             width: 100vw; height: 100vh; color: white;
             display: flex; justify-content: center; align-items: center;
@@ -22,67 +21,85 @@
 
         canvas { position: absolute; top: 0; left: 0; z-index: 1; }
 
-        /* UI层级必须最高 */
+        /* UI层级 */
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 999; pointer-events: none;
         }
 
+        /* 操作提示 (新功能) */
+        #controls-hint {
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(0,0,0,0.6); padding: 10px 20px;
+            border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
+            font-size: 12px; color: #ccc; pointer-events: none;
+            backdrop-filter: blur(4px); text-align: right;
+        }
+        .key-badge {
+            display: inline-block; background: rgba(255,255,255,0.2);
+            padding: 2px 6px; border-radius: 4px; color: #fff; font-weight: bold;
+            margin: 0 2px; font-family: monospace;
+        }
+
+        /* 通用面板 */
         .panel {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             background: var(--panel-bg);
             border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: 0 0 50px rgba(0, 242, 254, 0.15);
-            backdrop-filter: blur(10px);
-            padding: 35px; border-radius: 15px;
-            text-align: center; min-width: 320px;
+            box-shadow: 0 0 60px rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(15px);
+            padding: 40px; border-radius: 16px;
+            text-align: center; min-width: 360px;
             pointer-events: auto; display: none;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .panel.active { display: block; animation: fade 0.3s ease; }
-        @keyframes fade { from { opacity: 0; transform: translate(-50%, -45%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+        .panel.active { display: block; }
+        @keyframes popIn { from { transform: translate(-50%, -40%) scale(0.9); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 
-        h1 { margin: 0 0 20px; color: var(--cyan); text-shadow: 0 0 10px var(--cyan); font-size: 24px; letter-spacing: 2px; }
+        /* 暂停遮罩 */
+        #pause-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); backdrop-filter: blur(8px);
+            display: none; justify-content: center; align-items: center;
+            z-index: 500; pointer-events: auto;
+        }
+        #pause-overlay.active { display: flex; }
+
+        h1 { margin: 0 0 20px; color: var(--cyan); text-shadow: 0 0 15px var(--cyan); font-size: 26px; letter-spacing: 2px; }
         
         input {
             background: rgba(0,0,0,0.5); border: 1px solid #555;
-            color: #fff; padding: 12px; width: 100%; border-radius: 6px;
-            font-size: 16px; text-align: center; margin-bottom: 20px; outline: none;
+            color: #fff; padding: 14px; width: 100%; border-radius: 8px;
+            font-size: 1.1rem; text-align: center; margin-bottom: 20px; outline: none;
         }
         input:focus { border-color: var(--cyan); }
 
         .btn {
             background: linear-gradient(135deg, #0061ff, var(--cyan));
-            border: none; padding: 12px 30px; border-radius: 30px;
+            border: none; padding: 12px 35px; border-radius: 30px;
             color: #000; font-weight: bold; cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: 0.2s; font-size: 16px;
         }
-        .btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,242,254,0.3); }
-        .btn.red { background: linear-gradient(135deg, #ff0055, #ff5e57); color: white; }
-        .btn.outline { background: transparent; border: 1px solid #666; color: #aaa; margin-top: 10px; padding: 8px 20px; font-size: 12px; }
-        .btn.outline:hover { border-color: #fff; color: #fff; }
-
-        .slot-list { margin: 15px 0; max-height: 200px; overflow-y: auto; text-align: left; }
-        .slot {
-            background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 8px;
-            border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between;
-            border: 1px solid transparent;
-        }
-        .slot:hover { border-color: var(--cyan); background: rgba(255,255,255,0.1); }
+        .btn:hover { transform: scale(1.05); box-shadow: 0 8px 25px rgba(0,242,254,0.4); }
+        .btn.outline { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #ddd; margin-top: 15px; }
+        .btn.outline:hover { border-color: #fff; color: #fff; background: rgba(255,255,255,0.1); }
 
         /* HUD */
         #hud { display: none; pointer-events: none; }
         .hud-top { position: absolute; top: 20px; left: 20px; display: flex; gap: 15px; }
-        .stat { background: rgba(0,0,0,0.7); padding: 8px 15px; border-radius: 20px; border: 1px solid #333; font-weight: bold; font-size: 14px; }
+        .stat { background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 6px; }
         
         .skill-bar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; pointer-events: auto; }
-        .s-box {
-            width: 60px; height: 60px; background: rgba(0,0,0,0.8);
-            border: 2px solid #333; border-radius: 10px; position: relative;
+        .sk-box {
+            width: 64px; height: 64px; background: rgba(10,20,30,0.9);
+            border: 2px solid #444; border-radius: 12px; position: relative;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .s-box.active { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
-        .s-cd { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: rgba(0,0,0,0.7); transition: height 0.1s linear; }
+        .sk-box.active { border-color: var(--gold); box-shadow: 0 0 20px rgba(255,215,0,0.3); }
+        .sk-icon { font-size: 1.5rem; z-index: 2; }
+        .sk-key { font-size: 0.7rem; color: #888; margin-top: 3px; z-index: 2; font-weight: bold; }
+        .sk-cd { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: rgba(0,0,0,0.8); z-index: 1; transition: height 0.1s linear; }
 
         .float-txt {
             position: absolute; font-weight: 900; font-size: 20px; pointer-events: none;
@@ -90,15 +107,29 @@
         }
         @keyframes float { to { transform: translateY(-50px); opacity: 0; } }
 
-        #debug { position: fixed; top:0; left:0; background:red; color:white; z-index:10000; padding:10px; display:none; }
+        #err-log { position: fixed; top: 0; left: 0; width: 100%; background: #d00; color: #fff; text-align: center; display: none; z-index: 10000; }
+        
+        /* 存档列表 */
+        .slot-list { margin: 15px 0; max-height: 200px; overflow-y: auto; }
+        .slot {
+            background: rgba(255,255,255,0.05); padding: 12px; margin-bottom: 8px;
+            border-radius: 8px; display: flex; justify-content: space-between;
+            cursor: pointer; border: 1px solid transparent;
+        }
+        .slot:hover { border-color: var(--cyan); background: rgba(0,242,254,0.1); }
     </style>
 </head>
 <body>
 
-    <div id="debug"></div>
+    <div id="err-log"></div>
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer">
+        <div id="controls-hint" style="display: none;">
+            <div><span class="key-badge">P</span> 暂停游戏</div>
+            <div style="margin-top:5px;"><span class="key-badge">ESC</span> 退出/菜单</div>
+        </div>
+
         <div id="p-pass" class="panel active">
             <h1>SYSTEM LOCKED</h1>
             <p>请输入密钥启动系统</p>
@@ -118,7 +149,7 @@
         <div id="p-saves" class="panel">
             <h1>ARCHIVES</h1>
             <div class="slot-list" id="slot-list"></div>
-            <button class="btn" onclick="App.newGame()">开始新游戏</button>
+            <button class="btn" onclick="App.newGame()">开始新征程</button>
             <br>
             <button class="btn outline" onclick="UI.show('p-login')">退出</button>
         </div>
@@ -126,7 +157,11 @@
         <div id="p-win" class="panel">
             <h1 style="color:var(--gold)">VICTORY</h1>
             <p>海域已征服</p>
-            <button class="btn" onclick="Game.nextLevel()">下一关：深渊</button>
+            <div style="text-align: left; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                <p style="margin:0; color:#fff">下一站: <b style="color:var(--pink)">深渊禁区</b></p>
+                <small style="color:#888">环境: 极度黑暗 | 威胁: 巨型生物</small>
+            </div>
+            <button class="btn" onclick="Game.nextLevel()">潜入深渊</button>
             <br>
             <button class="btn outline" onclick="App.saveQuit()">存档退出</button>
         </div>
@@ -139,17 +174,26 @@
             <button class="btn outline" onclick="App.loadSaves()">返回</button>
         </div>
 
+        <div id="pause-overlay">
+            <div class="panel active" style="background:rgba(0,0,0,0.8);">
+                <h1 style="color: #fff;">PAUSED</h1>
+                <button class="btn" onclick="Game.togglePause()">继续游戏</button>
+                <br>
+                <button class="btn outline" onclick="App.saveQuit()">保存并退出</button>
+            </div>
+        </div>
+
         <div id="hud">
             <div class="hud-top">
-                <div class="stat" style="color:var(--pink)">❤ <span id="v-lives">3</span></div>
-                <div class="stat" style="color:var(--cyan)">📏 <span id="v-size">0</span></div>
+                <div class="stat" style="border-left:3px solid var(--pink); color:var(--pink)">❤ <span id="v-lives">3</span></div>
+                <div class="stat" style="border-left:3px solid var(--cyan); color:var(--cyan)">📏 <span id="v-size">0</span></div>
                 <div class="stat">⚓ <span id="v-zone">Zone</span></div>
             </div>
             <div class="skill-bar">
-                <div class="s-box" id="s-dash"><div>⚡</div><small style="font-size:10px;color:#888">SPACE</small><div class="s-cd" id="c-dash"></div></div>
-                <div class="s-box" id="s-shield"><div>🛡️</div><small style="font-size:10px;color:#888">J</small><div class="s-cd" id="c-shield"></div></div>
-                <div class="s-box" id="s-magnet"><div>🧲</div><small style="font-size:10px;color:#888">K</small><div class="s-cd" id="c-magnet"></div></div>
-                <div class="s-box" id="s-sonar" style="display:none"><div>📡</div><small style="font-size:10px;color:#888">L</small><div class="s-cd" id="c-sonar"></div></div>
+                <div class="sk-box" id="s-dash"><div class="sk-icon">⚡</div><div class="sk-key">SPACE</div><div class="sk-cd" id="c-dash"></div></div>
+                <div class="sk-box" id="s-shield"><div class="sk-icon">🛡️</div><div class="sk-key">J</div><div class="sk-cd" id="c-shield"></div></div>
+                <div class="sk-box" id="s-magnet"><div class="sk-icon">🧲</div><div class="sk-key">K</div><div class="sk-cd" id="c-magnet"></div></div>
+                <div class="sk-box" id="s-sonar" style="display:none"><div class="sk-icon">📡</div><div class="sk-key">L</div><div class="sk-cd" id="c-sonar"></div></div>
             </div>
         </div>
     </div>
@@ -157,28 +201,40 @@
 <script>
 /* --- 0. 紧急错误处理 --- */
 window.onerror = function(msg, url, line) {
-    const el = document.getElementById('debug');
-    el.style.display = 'block';
-    el.innerText = `Error: ${msg} (Line ${line})`;
-    console.error(msg);
+    document.getElementById('err-log').style.display = 'block';
+    document.getElementById('err-log').innerText = `Err: ${msg} (L${line})`;
     return false;
 };
 
-/* --- 1. 配置 (严禁使用未定义变量) --- */
+/* --- 1. 配置 --- */
 const CFG = {
     PASS: 'xjblsy99',
-    WORLD: 2500,
+    WORLD: 3000, // 地图高度
+    WIDTH: 2000, // 地图宽度
     LEVELS: [
-        { id:0, name:"阳光浅滩", target:60, startR:15, dark:0, bg:['#006994','#003366'], skills:['dash','shield','magnet'], spawns:['tetra','goldie','ray'] },
-        { id:1, name:"深渊禁区", target:200, startR:70, dark:0.95, bg:['#050505','#1a0b2e'], skills:['dash','shield','magnet','sonar'], spawns:['goldie','angler','shark','whale'] }
+        { 
+            id:0, name:"阳光浅滩", target:60, startR:15, dark:0, 
+            skyColor: ['#4facfe', '#00f2fe'], // 蓝天
+            waterColor: ['#00f2fe', '#006994'], 
+            skills:['dash','shield','magnet'], 
+            spawns:['clownfish','seahorse','tetra'] 
+        },
+        { 
+            id:1, name:"深渊禁区", target:200, startR:70, dark:0.96, 
+            skyColor: ['#000000', '#050510'], 
+            waterColor: ['#050510', '#1a0b2e'], 
+            skills:['dash','shield','magnet','sonar'], 
+            spawns:['angler','shark','whale'] 
+        }
     ],
     FISH: {
-        tetra:  { r:[6,12],   spd:3.0, color:'#ff00cc', type:'neon' },
-        goldie: { r:[12,25],  spd:2.2, color:'#ff9f43', type:'gold' },
-        ray:    { r:[25,40],  spd:2.5, color:'#00d2d3', type:'flat' },
-        angler: { r:[40,60],  spd:1.8, color:'#a55eea', type:'angler' },
-        shark:  { r:[60,90],  spd:4.0, color:'#7f8fa6', type:'shark', aggro:true },
-        whale:  { r:[100,180],spd:1.2, color:'#2f3542', type:'whale' }
+        // 替换了原来的抽象鱼，改为具体种类
+        clownfish: { r:[12,20], spd:2.5, color:'#ff9f43', type:'clownfish' }, // 小丑鱼
+        seahorse:  { r:[18,30], spd:2.0, color:'#feca57', type:'seahorse' },  // 海马
+        tetra:     { r:[6,12],  spd:3.5, color:'#ff00cc', type:'neon' },      // 霓虹鱼(保留作为饲料)
+        angler:    { r:[40,60], spd:1.8, color:'#a55eea', type:'angler' },    // 灯笼鱼
+        shark:     { r:[60,90], spd:4.5, color:'#7f8fa6', type:'shark', aggro:true },
+        whale:     { r:[100,180],spd:1.2,color:'#2f3542', type:'whale' }
     },
     SKILLS: {
         dash: {cd:3000, dur:300}, shield: {cd:12000, dur:3000},
@@ -186,7 +242,7 @@ const CFG = {
     }
 };
 
-/* --- 2. 安全存储 --- */
+/* --- 2. 存储系统 --- */
 const Store = {
     mem: {}, ok: false,
     init() { try { localStorage.setItem('t','1'); localStorage.removeItem('t'); this.ok=true; } catch(e){} },
@@ -196,69 +252,137 @@ const Store = {
 };
 Store.init();
 
-/* --- 3. 渲染引擎 (含防崩逻辑) --- */
+/* --- 3. 渲染引擎 (建模优化) --- */
 const Render = {
+    // 绘制背景环境 (天空、海水、海底)
+    environment(ctx, camY, width, height, lvl) {
+        // 1. 天空层 (只有在地图顶部能看到)
+        if(camY < 0) {
+            const skyH = Math.abs(camY) + 100;
+            const skyG = ctx.createLinearGradient(0, camY, 0, 0);
+            skyG.addColorStop(0, lvl.skyColor[0]);
+            skyG.addColorStop(1, lvl.skyColor[1]);
+            ctx.fillStyle = skyG;
+            ctx.fillRect(0, camY, width, Math.max(skyH, 0));
+        }
+
+        // 2. 海水层 (主体)
+        const seaG = ctx.createLinearGradient(0, 0, 0, CFG.WORLD);
+        seaG.addColorStop(0, lvl.waterColor[0]);
+        seaG.addColorStop(1, lvl.waterColor[1]);
+        ctx.fillStyle = seaG;
+        ctx.fillRect(0, 0, CFG.WIDTH, CFG.WORLD);
+
+        // 3. 海底地形 (底部装饰)
+        const floorY = CFG.WORLD;
+        ctx.fillStyle = lvl.id === 0 ? '#e1b12c' : '#2d3436'; // 沙地 vs 岩石
+        ctx.beginPath();
+        ctx.moveTo(0, floorY);
+        // 简单的起伏地形生成
+        for(let x=0; x<=CFG.WIDTH; x+=100) {
+            // 基于固定种子生成伪随机地形，保证不闪烁
+            const offset = Math.sin(x * 0.01) * 50 + Math.cos(x * 0.05) * 30;
+            ctx.lineTo(x, floorY + offset);
+        }
+        ctx.lineTo(CFG.WIDTH, floorY + 200);
+        ctx.lineTo(0, floorY + 200);
+        ctx.fill();
+
+        // 4. 海底装饰 (珊瑚/岩石)
+        Game.decor.forEach(d => {
+            if(d.y > floorY - 100) {
+                ctx.save();
+                ctx.translate(d.x, d.y);
+                ctx.fillStyle = d.c;
+                ctx.beginPath();
+                ctx.arc(0, 0, d.r, Math.PI, 0); // 半圆珊瑚
+                ctx.fill();
+                ctx.restore();
+            }
+        });
+    },
+
     fish(ctx, x, y, r, ang, color, type, phase) {
-        // ★★★ 核心修复：强制颜色检查 ★★★
-        const safeColor = color || '#ffffff'; 
-        
+        const safeColor = color || '#fff'; 
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(ang);
 
         const swing = Math.sin(phase);
 
-        // 身体渐变
-        const g = ctx.createRadialGradient(0, -r*0.3, r*0.1, 0, 0, r);
-        g.addColorStop(0, '#fff');
-        g.addColorStop(0.4, safeColor);
-        g.addColorStop(1, '#000');
+        // --- 鱼类建模分支 ---
+        if (type === 'clownfish') {
+            // 小丑鱼：橙身 + 白条纹
+            ctx.fillStyle = '#e67e22'; // 橙色
+            // 身体
+            ctx.beginPath(); ctx.ellipse(0, 0, r, r*0.6, 0, 0, Math.PI*2); ctx.fill();
+            // 尾巴
+            ctx.beginPath(); ctx.moveTo(-r*0.8,0); ctx.lineTo(-r*1.5, -r*0.6+swing*5); ctx.lineTo(-r*1.5, r*0.6+swing*5); ctx.fill();
+            // 白条纹
+            ctx.fillStyle = '#fff';
+            ctx.globalCompositeOperation = 'source-atop'; // 限制在身体内
+            ctx.fillRect(-r*0.5, -r, r*0.3, r*2);
+            ctx.fillRect(0, -r, r*0.3, r*2);
+            ctx.fillRect(r*0.5, -r, r*0.3, r*2);
+            ctx.globalCompositeOperation = 'source-over';
+            // 眼睛
+            ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(r*0.6, -r*0.2, r*0.15, 0, 6.28); ctx.fill();
 
-        // 尾巴 (骨骼模拟)
-        ctx.fillStyle = safeColor;
-        ctx.beginPath();
-        if(type === 'shark') {
-            ctx.moveTo(-r*0.8, 0);
+        } else if (type === 'seahorse') {
+            // 海马：特殊的直立姿态 (在顶视图中表现为卷曲)
+            ctx.fillStyle = safeColor;
+            // 头部 (长吻)
+            ctx.beginPath(); ctx.ellipse(r*0.5, -r*0.5, r*0.4, r*0.2, 0.5, 0, 6.28); ctx.fill();
+            // 身体
+            ctx.beginPath(); ctx.ellipse(0, 0, r*0.5, r*0.7, 0, 0, 6.28); ctx.fill();
+            // 卷尾
+            ctx.beginPath(); 
+            ctx.arc(0, r*0.8, r*0.3, 0, Math.PI+swing*0.5); 
+            ctx.lineWidth = r*0.3; ctx.strokeStyle = safeColor; ctx.stroke();
+            // 背鳍 (快速摆动)
+            const fin = Math.sin(phase*5)*r*0.2;
+            ctx.fillStyle = '#f1c40f';
+            ctx.beginPath(); ctx.arc(-r*0.4, 0, r*0.3+fin, 1.5, 4.7); ctx.fill();
+
+        } else if (type === 'shark') {
+            // 鲨鱼 (霸气)
+            const g = ctx.createRadialGradient(0,-r*0.3,r*0.1,0,0,r);
+            g.addColorStop(0,'#bdc3c7'); g.addColorStop(0.5,safeColor); g.addColorStop(1,'#2c3e50');
+            ctx.fillStyle = g;
+            // 尾巴
+            ctx.beginPath(); ctx.moveTo(-r*0.8,0); 
             ctx.quadraticCurveTo(-r*1.6, swing*r*0.5, -r*2.4, -r*0.9+swing*r);
-            ctx.lineTo(-r*2.4, r*0.9+swing*r);
-            ctx.quadraticCurveTo(-r*1.6, swing*r*0.5, -r*0.8, 0);
-        } else if(type === 'whale') {
-            ctx.moveTo(-r*0.9, 0); ctx.quadraticCurveTo(-r*1.8, 0, -r*2.5, -r*0.6+swing*r*0.4);
-            ctx.lineTo(-r*2.5, r*0.6+swing*r*0.4); ctx.quadraticCurveTo(-r*1.8, 0, -r*0.9, 0);
+            ctx.lineTo(-r*2.4, r*0.9+swing*r); ctx.quadraticCurveTo(-r*1.6, swing*r*0.5, -r*0.8, 0); ctx.fill();
+            // 身体
+            ctx.beginPath(); ctx.ellipse(0,0, r*1.3, r*0.65, 0, 0, 6.28); ctx.fill();
+            // 背鳍
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-r*0.5, -r*1.2); ctx.lineTo(r*0.2, 0); ctx.fill();
+
         } else {
-            ctx.moveTo(-r*0.7, 0); ctx.lineTo(-r*1.5, -r*0.6+swing*8); ctx.lineTo(-r*1.5, r*0.6+swing*8);
-        }
-        ctx.fill();
+            // 通用鱼类 (Neon, Angler, Whale etc)
+            const g = ctx.createRadialGradient(0,-r*0.3,r*0.1,0,0,r);
+            g.addColorStop(0,'#fff'); g.addColorStop(0.4,safeColor); g.addColorStop(1,'#000');
+            
+            ctx.fillStyle = safeColor;
+            // 尾巴
+            ctx.beginPath(); ctx.moveTo(-r*0.7,0); ctx.lineTo(-r*1.5, -r*0.6+swing*8); ctx.lineTo(-r*1.5, r*0.6+swing*8); ctx.fill();
+            
+            // 侧鳍
+            const finAng = 0.6 + Math.sin(phase*0.8)*0.3;
+            ctx.beginPath(); ctx.ellipse(r*0.2, r*0.6, r*0.3, r*0.15, finAng, 0, 6.28);
+            ctx.ellipse(r*0.2, -r*0.6, r*0.3, r*0.15, -finAng, 0, 6.28); ctx.fill();
 
-        // 侧鳍
-        const finAng = 0.6 + Math.sin(phase*0.8)*0.3;
-        ctx.beginPath(); ctx.ellipse(r*0.2, r*0.6, r*0.3, r*0.15, finAng, 0, Math.PI*2);
-        ctx.ellipse(r*0.2, -r*0.6, r*0.3, r*0.15, -finAng, 0, Math.PI*2);
-        ctx.fill();
+            ctx.fillStyle = g;
+            ctx.beginPath(); ctx.ellipse(0,0, r, r*0.75, 0, 0, 6.28); ctx.fill();
 
-        // 主体
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        if(type === 'shark') ctx.ellipse(0,0, r*1.3, r*0.65, 0, 0, Math.PI*2);
-        else if(type === 'whale') ctx.ellipse(0,0, r*1.1, r*0.85, 0, 0, Math.PI*2);
-        else ctx.ellipse(0,0, r, r*0.75, 0, 0, Math.PI*2);
-        ctx.fill();
-
-        // 眼睛
-        const ex = r*0.4, ey = r*0.35, es = r*0.22;
-        ctx.fillStyle='#fff'; 
-        ctx.beginPath(); ctx.arc(ex, -ey, es, 0, 6.28); ctx.fill();
-        ctx.beginPath(); ctx.arc(ex, ey, es, 0, 6.28); ctx.fill();
-        ctx.fillStyle='#000';
-        ctx.beginPath(); ctx.arc(ex+1, -ey, es*0.5, 0, 6.28); ctx.fill();
-        ctx.beginPath(); ctx.arc(ex+1, ey, es*0.5, 0, 6.28); ctx.fill();
-
-        // 灯笼鱼灯
-        if(type === 'angler') {
-            ctx.strokeStyle='#888'; ctx.lineWidth=2;
-            ctx.beginPath(); ctx.moveTo(r*0.5, -r*0.2); ctx.quadraticCurveTo(r, -r*1.5, r*1.5, -r*1.2); ctx.stroke();
-            ctx.fillStyle='#ff0'; ctx.shadowBlur=20; ctx.shadowColor='#ff0';
-            ctx.beginPath(); ctx.arc(r*1.5, -r*1.2, 5, 0, 6.28); ctx.fill(); ctx.shadowBlur=0;
+            // 灯笼鱼灯
+            if(type === 'angler') {
+                ctx.strokeStyle='#888'; ctx.lineWidth=2;
+                ctx.beginPath(); ctx.moveTo(r*0.5, -r*0.2); ctx.quadraticCurveTo(r, -r*1.5, r*1.5, -r*1.2); ctx.stroke();
+                ctx.fillStyle='#ff0'; ctx.shadowBlur=20; ctx.shadowColor='#ff0';
+                ctx.beginPath(); ctx.arc(r*1.5, -r*1.2, 5, 0, 6.28); ctx.fill(); ctx.shadowBlur=0;
+            }
         }
 
         ctx.restore();
@@ -274,11 +398,11 @@ const Render = {
 /* --- 4. 游戏引擎 --- */
 const Game = {
     cvs: null, ctx: null, W: 0, H: 0,
-    state: 'STOP', loopId: null,
+    state: 'STOP', loopId: null, paused: false,
     cam: {x:0, y:0},
-    // ★★★ 修复：初始化时给予默认颜色，防止第一帧渲染报错 ★★★
     p: { x:0, y:0, vx:0, vy:0, r:0, angle:0, tail:0, lives:3, inv:0, skills:{}, color:'#00f2fe' },
-    enemies: [], grid: [], keys: {}, lvlIdx: 0, saveId: null, shake: 0,
+    enemies: [], parts: [], decor: [], 
+    keys: {}, lvlIdx: 0, saveId: null, shake: 0,
 
     init() {
         this.cvs = document.getElementById('gameCanvas');
@@ -286,18 +410,31 @@ const Game = {
         this.resize();
         window.addEventListener('resize', ()=>this.resize());
         
-        // 背景网格
-        for(let i=0; i<100; i++) {
-            this.grid.push({ x:Math.random()*CFG.WORLD, y:Math.random()*CFG.WORLD, r:Math.random()*2+1 });
+        // 初始化装饰物 (珊瑚/石头)
+        for(let i=0; i<30; i++) {
+            this.decor.push({
+                x: Math.random() * CFG.WIDTH,
+                y: CFG.WORLD + Math.random() * 150, // 在底部
+                r: 20 + Math.random() * 40,
+                c: Math.random()>0.5 ? '#ff7675' : '#55efc4' // 珊瑚色
+            });
         }
 
         window.addEventListener('keydown', e => {
-            this.keys[e.key] = true;
             if(this.state==='PLAY') {
-                if(e.code==='Space') this.cast('dash');
-                if(e.code==='KeyJ') this.cast('shield');
-                if(e.code==='KeyK') this.cast('magnet');
-                if(e.code==='KeyL') this.cast('sonar');
+                // 暂停逻辑
+                if(e.code === 'KeyP') this.togglePause();
+                if(e.code === 'Escape') {
+                    if(this.paused) App.saveQuit();
+                    else this.togglePause();
+                }
+                if(!this.paused) {
+                    this.keys[e.key] = true;
+                    if(e.code==='Space') this.cast('dash');
+                    if(e.code==='KeyJ') this.cast('shield');
+                    if(e.code==='KeyK') this.cast('magnet');
+                    if(e.code==='KeyL') this.cast('sonar');
+                }
             } else if(e.key==='Enter') UI.enter();
         });
         window.addEventListener('keyup', e => this.keys[e.key] = false);
@@ -308,20 +445,28 @@ const Game = {
         this.cvs.width = this.W; this.cvs.height = this.H;
     },
 
+    togglePause() {
+        this.paused = !this.paused;
+        const ol = document.getElementById('pause-overlay');
+        if(this.paused) ol.classList.add('active');
+        else ol.classList.remove('active');
+    },
+
     start(lvl, sid) {
         this.lvlIdx = lvl; this.saveId = sid;
         const cfg = CFG.LEVELS[lvl];
 
-        this.p.x = CFG.WORLD/2; this.p.y = CFG.WORLD/2;
+        this.p.x = CFG.WIDTH/2; this.p.y = CFG.WORLD/2; // 初始位置
         this.p.vx = 0; this.p.vy = 0;
         this.p.r = cfg.startR; this.p.lives = 3; this.p.inv = 0;
-        this.p.color = '#00f2fe'; // 确保颜色存在
+        this.p.color = '#00f2fe';
         
         this.cam.x = this.p.x - this.W/2;
         this.cam.y = this.p.y - this.H/2;
 
         ['dash','shield','magnet','sonar'].forEach(k => this.p.skills[k] = {cd:0, active:false});
-        this.enemies = [];
+        this.enemies = []; this.paused = false;
+        document.getElementById('pause-overlay').classList.remove('active');
         this.state = 'PLAY';
         
         UI.setupHUD(cfg);
@@ -333,9 +478,10 @@ const Game = {
 
     loop() {
         if(this.state !== 'PLAY') return;
-        this.ctx.clearRect(0,0,this.W,this.H);
-        this.update();
-        this.draw();
+        
+        if(!this.paused) this.update(); // 暂停时不更新逻辑
+        this.draw(); // 暂停时继续绘制(保持画面)
+        
         this.loopId = requestAnimationFrame(()=>this.loop());
     },
 
@@ -343,7 +489,7 @@ const Game = {
         const p = this.p;
         const lvl = CFG.LEVELS[this.lvlIdx];
 
-        // 移动
+        // 1. 移动
         let acc = 0.5;
         let max = 8 * (30/(p.r+20));
         if(p.skills.dash.active) max *= 2.5;
@@ -359,26 +505,25 @@ const Game = {
 
         p.x += p.vx; p.y += p.vy;
         
-        // 边界
-        if(p.x<p.r) p.x=p.r; if(p.x>CFG.WORLD-p.r) p.x=CFG.WORLD-p.r;
-        if(p.y<p.r) p.y=p.r; if(p.y>CFG.WORLD-p.r) p.y=CFG.WORLD-p.r;
+        // 边界 (包含天空和海底缓冲)
+        if(p.x<p.r) p.x=p.r; if(p.x>CFG.WIDTH-p.r) p.x=CFG.WIDTH-p.r;
+        if(p.y<-200) p.y=-200; if(p.y>CFG.WORLD+200) p.y=CFG.WORLD+200; // 允许稍微游出边界看风景
 
         if(spd > 0.1) p.angle = Math.atan2(p.vy, p.vx);
         p.tail += 0.2 + spd*0.05;
 
-        // 摄像机
+        // 摄像机跟随
         this.cam.x += (p.x - this.W/2 - this.cam.x) * 0.1;
         this.cam.y += (p.y - this.H/2 - this.cam.y) * 0.1;
         if(this.shake > 0) this.shake *= 0.9;
 
-        // 生成敌人
+        // 生成
         if(this.enemies.length < 25 && Math.random()<0.03) this.spawn(lvl);
 
-        // 敌人逻辑
+        // 敌人
         for(let i=this.enemies.length-1; i>=0; i--) {
             let e = this.enemies[i];
-            // 修复：兼容旧存档可能没有颜色的情况
-            if(!e.color) e.color = '#ffffff'; 
+            if(!e.color) e.color='#fff'; // 保险
 
             if(e.stun > 0) { e.stun--; e.vx *= 0.9; e.vy *= 0.9; }
             else {
@@ -403,12 +548,12 @@ const Game = {
                 this.enemies.splice(i,1); continue;
             }
 
-            // 碰撞
             let dist = Math.sqrt((p.x-e.x)**2 + (p.y-e.y)**2);
             if(dist < p.r + e.r*0.8) {
                 if(p.r > e.r*1.1) {
                     this.enemies.splice(i,1);
                     p.r += e.r * 0.08;
+                    this.boom(e.x, e.y, e.color);
                     UI.floatText(`+${Math.floor(e.r)}`, e.x - this.cam.x, e.y - this.cam.y, '#ffd700');
                     UI.updateHUD();
                     if(p.r >= lvl.target) { this.state='PAUSED'; UI.show('p-win'); }
@@ -423,6 +568,13 @@ const Game = {
             }
         }
         if(p.inv > 0) p.inv--;
+
+        // 粒子
+        for(let i=this.parts.length-1; i>=0; i--) {
+            let pt = this.parts[i];
+            pt.x += pt.vx; pt.y += pt.vy; pt.l -= 0.03;
+            if(pt.l <= 0) this.parts.splice(i,1);
+        }
 
         // CD
         for(let k in p.skills) {
@@ -443,7 +595,8 @@ const Game = {
             ey = this.cam.y + (Math.random()>0.5 ? -200 : this.H+200);
         }
         
-        if(ex<0)ex=0; if(ex>CFG.WORLD)ex=CFG.WORLD;
+        // 强制在世界范围内
+        if(ex<0)ex=0; if(ex>CFG.WIDTH)ex=CFG.WIDTH;
         if(ey<0)ey=0; if(ey>CFG.WORLD)ey=CFG.WORLD;
 
         let r = proto.r[0] + Math.random()*(proto.r[1]-proto.r[0]);
@@ -453,6 +606,13 @@ const Game = {
             x:ex, y:ey, vx:(Math.random()-0.5)*proto.spd, vy:(Math.random()-0.5)*proto.spd,
             r:r, color:proto.color, type:proto.type, aggro:proto.aggro,
             angle:0, tail:0, stun:0
+        });
+    },
+
+    boom(x, y, c) {
+        for(let i=0; i<8; i++) this.parts.push({
+            x:x, y:y, vx:(Math.random()-0.5)*12, vy:(Math.random()-0.5)*12,
+            r:Math.random()*5+2, color:c, l:1
         });
     },
 
@@ -482,29 +642,24 @@ const Game = {
         let sy = (Math.random()-0.5) * this.shake;
         ctx.translate(-this.cam.x + sx, -this.cam.y + sy);
 
-        // 背景
-        const bg = ctx.createLinearGradient(0,0,0,CFG.WORLD);
-        bg.addColorStop(0, lvl.bg[0]); bg.addColorStop(1, lvl.bg[1]);
-        ctx.fillStyle = bg; ctx.fillRect(0,0,CFG.WORLD, CFG.WORLD);
-        
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth=20;
-        ctx.strokeRect(0,0,CFG.WORLD, CFG.WORLD);
+        // 1. 绘制环境背景 (天空、海洋、海底)
+        Render.environment(ctx, this.cam.y, this.W, this.H, lvl);
 
-        ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        this.grid.forEach(d => { ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 6.28); ctx.fill(); });
+        // 2. 绘制世界边界框 (辅助)
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth=10;
+        ctx.strokeRect(0,0,CFG.WIDTH, CFG.WORLD);
 
-        // 光照层
+        // 3. 深海光照层
         if(lvl.dark > 0) {
             ctx.fillStyle = `rgba(0,0,0,${lvl.dark})`;
             ctx.fillRect(this.cam.x-50, this.cam.y-50, this.W+100, this.H+100);
             ctx.globalCompositeOperation = 'destination-out';
-            
             Render.light(ctx, p.x, p.y, p.r*5+300);
             this.enemies.forEach(e => { if(e.type==='angler') Render.light(ctx, e.x, e.y, e.r*4+100); });
             ctx.globalCompositeOperation = 'source-over';
         }
 
-        // 技能
+        // 4. 技能
         if(p.skills.shield.active) {
             ctx.strokeStyle='#ffd700'; ctx.lineWidth=4; ctx.setLineDash([15,10]);
             ctx.beginPath(); ctx.arc(p.x, p.y, p.r+30, 0, 6.28); ctx.stroke(); ctx.setLineDash([]);
@@ -518,9 +673,16 @@ const Game = {
             ctx.beginPath(); ctx.arc(p.x, p.y, CFG.SKILLS.sonar.r, 0, 6.28); ctx.stroke();
         }
 
-        // 绘制所有鱼
+        // 5. 实体
         this.enemies.forEach(e => Render.fish(ctx, e.x, e.y, e.r, e.angle, e.color, e.type, e.tail));
         if(p.inv%10 < 5) Render.fish(ctx, p.x, p.y, p.r, p.angle, p.color, 'player', p.tail);
+
+        // 6. 粒子
+        this.parts.forEach(pt => {
+            ctx.globalAlpha = pt.l; ctx.fillStyle = pt.color;
+            ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, 6.28); ctx.fill();
+        });
+        ctx.globalAlpha = 1;
 
         ctx.restore();
     }
@@ -539,18 +701,14 @@ const App = {
         else alert('代号无效');
     },
     clearData() {
-        if(confirm("确定要清除所有浏览器缓存数据吗？这将修复黑屏问题。")) {
-            Store.clear();
-            alert("已清理。请刷新页面。");
-            location.reload();
-        }
+        if(confirm("清除缓存?")) { Store.clear(); location.reload(); }
     },
     loadSaves() {
         UI.show('p-saves');
         const list = document.getElementById('slot-list');
         list.innerHTML = '';
         const s = Store.get(`DSE_${this.user}`) ? JSON.parse(Store.get(`DSE_${this.user}`)) : [];
-        if(s.length===0) list.innerHTML = '<div style="color:#888">暂无存档</div>';
+        if(s.length===0) list.innerHTML = '<div style="color:#888">暂无数据</div>';
         s.forEach(x => {
             const d = document.createElement('div');
             d.className = 'slot';
@@ -584,7 +742,10 @@ const App = {
         Store.set(`DSE_${this.user}`, JSON.stringify(s));
         this.loadSaves();
     },
-    saveQuit() { this.save(Math.min(Game.lvlIdx+1, 1), Game.p.r); this.loadSaves(); }
+    saveQuit() {
+        this.save(Math.min(Game.lvlIdx+1, 1), Game.p.r);
+        this.loadSaves();
+    }
 };
 
 /* --- 6. UI Utils --- */
@@ -598,7 +759,9 @@ const UI = {
         else if(document.getElementById('p-login').classList.contains('active')) App.login();
     },
     setupHUD(lvl) {
-        this.show(''); document.getElementById('hud').style.display = 'block';
+        this.show(''); 
+        document.getElementById('hud').style.display = 'block';
+        document.getElementById('controls-hint').style.display = 'block';
         document.getElementById('v-zone').innerText = lvl.name;
         ['dash','shield','magnet','sonar'].forEach(k => {
             document.getElementById(`s-${k}`).style.display = lvl.skills.includes(k) ? 'flex' : 'none';
