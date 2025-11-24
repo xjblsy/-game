@@ -3,869 +3,703 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Deep Sea Evolution: Genesis</title>
+    <title>Deep Sea Evolution: Stable</title>
     <style>
         :root {
             --primary: #00f2fe;
-            --secondary: #4facfe;
-            --accent: #ffd700;
+            --gold: #ffd700;
             --danger: #ff4757;
-            --dark-overlay: rgba(5, 10, 20, 0.95);
+            --glass: rgba(15, 25, 40, 0.95);
         }
 
         body {
             margin: 0; padding: 0;
-            background-color: #000510;
+            background-color: #000;
             overflow: hidden;
-            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             color: white;
-            user-select: none;
+            width: 100vw; height: 100vh;
+            display: flex; justify-content: center; align-items: center;
         }
 
-        /* 游戏画布层 */
+        /* 游戏层 */
         canvas {
-            display: block;
-            position: absolute;
-            top: 0; left: 0;
-            z-index: 1;
+            position: absolute; top: 0; left: 0;
+            z-index: 1; display: block;
         }
 
-        /* UI 交互层 */
+        /* UI 层 - 必须极高 */
         #ui-layer {
-            position: absolute;
-            top: 0; left: 0;
+            position: absolute; top: 0; left: 0;
             width: 100%; height: 100%;
-            z-index: 10;
-            pointer-events: none; /* 让鼠标事件穿透到游戏 */
+            z-index: 999;
+            pointer-events: none; /* 允许点击穿透到 Canvas */
         }
 
-        /* 通用面板组件 */
+        /* 面板样式 */
         .panel {
-            position: absolute;
-            top: 50%; left: 50%;
+            position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            background: var(--dark-overlay);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 0 40px rgba(0, 242, 254, 0.1);
-            backdrop-filter: blur(12px);
-            padding: 40px;
-            border-radius: 16px;
-            text-align: center;
-            min-width: 400px;
+            background: var(--glass);
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 0 40px rgba(0, 242, 254, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 40px; border-radius: 16px;
+            text-align: center; min-width: 350px;
             pointer-events: auto; /* 恢复点击 */
-            display: none;
-            animation: fadeIn 0.4s ease;
+            display: none; /* 默认隐藏 */
         }
-        .panel.active { display: block; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, -40%); } to { opacity: 1; transform: translate(-50%, -50%); } }
+        /* 强制显示第一个面板，防止黑屏 */
+        #p-pass { display: block; }
 
-        h1 { margin-bottom: 20px; font-weight: 800; letter-spacing: 2px; background: linear-gradient(to right, #fff, var(--primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        
+        h1 { margin: 0 0 20px 0; font-size: 2rem; color: var(--primary); text-shadow: 0 0 10px var(--primary); }
+        p { color: #aaa; margin-bottom: 20px; }
+
         input {
-            width: 100%; padding: 14px; margin-bottom: 20px;
-            background: rgba(0,0,0,0.5); border: 1px solid #333;
-            color: white; font-size: 1.1rem; text-align: center;
-            border-radius: 8px; outline: none; transition: 0.3s;
+            background: rgba(0,0,0,0.6); border: 1px solid #444;
+            color: #fff; padding: 12px; width: 100%; border-radius: 8px;
+            font-size: 1.1rem; text-align: center; margin-bottom: 20px;
+            outline: none;
         }
-        input:focus { border-color: var(--primary); box-shadow: 0 0 15px rgba(0, 242, 254, 0.2); }
+        input:focus { border-color: var(--primary); }
 
         .btn {
-            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            background: linear-gradient(135deg, #00c6ff, #0072ff);
             border: none; padding: 12px 30px; border-radius: 50px;
-            color: #000; font-weight: bold; font-size: 1rem;
-            cursor: pointer; transition: 0.2s; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            color: #fff; font-weight: bold; cursor: pointer; font-size: 1rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: 0.2s;
         }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0, 242, 254, 0.4); }
-        .btn.outline { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; }
-        .btn.outline:hover { background: rgba(255,255,255,0.1); }
+        .btn:hover { transform: scale(1.05); }
+        .btn.outline { background: transparent; border: 1px solid #fff; margin-left: 10px; }
 
         /* 存档列表 */
-        .slot-list { margin: 20px 0; max-height: 200px; overflow-y: auto; text-align: left; }
-        .slot-item {
-            padding: 12px; margin-bottom: 8px; border-radius: 8px;
-            background: rgba(255,255,255,0.05); cursor: pointer;
-            display: flex; justify-content: space-between; align-items: center;
-            border: 1px solid transparent; transition: 0.2s;
+        .slot-list { max-height: 200px; overflow-y: auto; text-align: left; margin-bottom: 15px; }
+        .slot {
+            padding: 10px; background: rgba(255,255,255,0.05); margin-bottom: 5px;
+            border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between;
         }
-        .slot-item:hover { border-color: var(--primary); background: rgba(0, 242, 254, 0.05); }
-        .del-btn { color: var(--danger); font-size: 1.2rem; padding: 0 10px; }
+        .slot:hover { background: rgba(0, 242, 254, 0.1); }
 
-        /* HUD - 游戏内界面 */
-        #hud { display: none; }
-        .hud-stats { position: absolute; top: 20px; left: 20px; display: flex; gap: 15px; }
-        .stat-box { 
-            background: rgba(0,0,0,0.7); padding: 8px 16px; border-radius: 20px; 
-            border: 1px solid rgba(255,255,255,0.1); font-weight: bold; font-size: 0.9rem;
-        }
-
+        /* HUD */
+        #hud { display: none; pointer-events: none; }
+        .hud-top { position: absolute; top: 20px; left: 20px; display: flex; gap: 15px; }
+        .stat { background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; border: 1px solid #444; }
+        
         /* 技能栏 */
-        .skill-bar { 
+        .skills {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             display: flex; gap: 15px; pointer-events: auto;
         }
-        .skill-slot {
-            width: 64px; height: 64px; background: rgba(10,20,30,0.9);
-            border: 2px solid #333; border-radius: 12px;
+        .s-box {
+            width: 60px; height: 60px; background: rgba(0,0,0,0.8);
+            border: 2px solid #444; border-radius: 10px; position: relative;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            position: relative; overflow: hidden; transition: 0.2s;
         }
-        .skill-slot.active { border-color: var(--accent); box-shadow: 0 0 15px rgba(255, 215, 0, 0.3); }
-        .skill-icon { font-size: 1.5rem; z-index: 2; }
-        .skill-key { font-size: 0.7rem; color: #888; margin-top: 2px; z-index: 2; }
-        .cd-mask { 
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; 
-            background: rgba(0,0,0,0.8); z-index: 1; transition: height 0.1s linear; 
-        }
+        .s-box.active { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); }
+        .cd-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: rgba(0,0,0,0.7); transition: height 0.1s linear; }
 
-        /* 浮动文字 */
-        .float-text {
-            position: absolute; font-weight: 900; font-size: 1.2rem; pointer-events: none;
-            text-shadow: 0 2px 5px black; animation: floatUp 0.8s forwards;
+        .float-txt {
+            position: absolute; font-weight: bold; font-size: 1.2rem; pointer-events: none;
+            animation: float 1s forwards; text-shadow: 0 2px 2px #000;
         }
-        @keyframes floatUp { to { transform: translateY(-40px); opacity: 0; } }
+        @keyframes float { to { transform: translateY(-50px); opacity: 0; } }
 
         /* 错误提示 */
-        .error-shake { animation: shake 0.4s ease-in-out; border-color: var(--danger) !important; }
-        @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
-
-        /* 小地图雷达 (装饰性) */
-        .minimap {
-            position: absolute; top: 20px; right: 20px; width: 100px; height: 100px;
-            border-radius: 50%; border: 2px solid rgba(255,255,255,0.2);
-            background: rgba(0,0,0,0.5); overflow: hidden; opacity: 0.6;
+        #global-error {
+            position: fixed; top: 0; left: 0; width: 100%; background: red; color: white;
+            text-align: center; padding: 10px; z-index: 9999; display: none;
         }
     </style>
 </head>
 <body>
 
+    <div id="global-error"></div>
+
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer">
-        <div id="p-pass" class="panel active">
-            <h1>SYSTEM LOCKED</h1>
-            <p>输入最高权限密钥启动系统</p>
+        <div id="p-pass" class="panel">
+            <h1>SECURITY CHECK</h1>
+            <p>输入密钥启动系统</p>
             <input type="password" id="inp-pass" placeholder="Password">
-            <button class="btn" onclick="UI.verifyPass()">ACCESS</button>
+            <button class="btn" onclick="UI.checkPass()">ACCESS</button>
         </div>
 
         <div id="p-login" class="panel">
             <h1>IDENTITY</h1>
-            <p>输入您的代号 (拼音首字母)</p>
-            <input type="text" id="inp-user" placeholder="例如: ZHANGSAN" maxlength="12">
+            <p>输入代号 (拼音首字母)</p>
+            <input type="text" id="inp-user" placeholder="例: LZY">
             <button class="btn" onclick="UI.login()">CONNECT</button>
         </div>
 
         <div id="p-saves" class="panel">
             <h1>ARCHIVES</h1>
-            <p id="txt-welcome"></p>
             <div class="slot-list" id="slot-list"></div>
-            <div style="margin-top: 20px;">
-                <button class="btn" onclick="App.newGame()">新征程</button>
-                <button class="btn outline" onclick="App.logout()">退出</button>
-            </div>
+            <button class="btn" onclick="Game.init(0, null)">新游戏</button>
+            <button class="btn outline" onclick="UI.show('p-login')">返回</button>
         </div>
 
         <div id="p-win" class="panel">
-            <h1 style="color: var(--accent);">DOMINATED</h1>
-            <p>当前海域已征服</p>
-            <div style="text-align: left; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin: 20px 0;">
-                <p style="margin:0; font-weight:bold;">下一站：深渊禁区</p>
-                <small style="color:#aaa;">环境：高压、无光、巨型生物</small>
-            </div>
-            <button class="btn" onclick="App.nextLevel()">潜入深渊</button>
-            <button class="btn outline" onclick="App.saveAndQuit()">存档休息</button>
+            <h1 style="color:var(--gold)">VICTORY</h1>
+            <p>浅滩已征服，准备潜入深渊？</p>
+            <button class="btn" onclick="Game.nextLevel()">进入深渊</button>
+            <button class="btn outline" onclick="Storage.saveQuit()">存档退出</button>
         </div>
 
         <div id="p-dead" class="panel">
-            <h1 style="color: var(--danger);">CRITICAL FAILURE</h1>
-            <p>生命信号中断...</p>
-            <button class="btn" onclick="Game.retry()">重组基因</button>
-            <button class="btn outline" onclick="App.loadSaves()">返回</button>
+            <h1 style="color:var(--danger)">W.A.S.T.E.D</h1>
+            <button class="btn" onclick="Game.retry()">重试</button>
+            <button class="btn outline" onclick="Storage.loadUI()">返回</button>
         </div>
 
         <div id="hud">
-            <div class="hud-stats">
-                <div class="stat-box" style="border-color: var(--danger); color: var(--danger);">
-                    ❤ <span id="ui-lives">3</span>
-                </div>
-                <div class="stat-box" style="border-color: var(--primary); color: var(--primary);">
-                    📏 <span id="ui-size">0</span>
-                </div>
-                <div class="stat-box">
-                    ⚓ <span id="ui-zone">Zone 1</span>
-                </div>
+            <div class="hud-top">
+                <div class="stat" style="color:var(--danger)">❤ <span id="v-lives">3</span></div>
+                <div class="stat" style="color:var(--primary)">📏 <span id="v-size">0</span></div>
+                <div class="stat">⚓ <span id="v-zone">Zone 1</span></div>
             </div>
-            <div class="minimap">
-                <div style="position:absolute; top:50%; left:50%; width:4px; height:4px; background:#0f0; border-radius:50%; transform:translate(-50%,-50%);"></div>
-            </div>
-
-            <div class="skill-bar">
-                <div class="skill-slot" id="s-dash">
-                    <div class="skill-icon">⚡</div><div class="skill-key">SPACE</div>
-                    <div class="cd-mask" id="cd-dash"></div>
-                </div>
-                <div class="skill-slot" id="s-shield">
-                    <div class="skill-icon">🛡️</div><div class="skill-key">J</div>
-                    <div class="cd-mask" id="cd-shield"></div>
-                </div>
-                <div class="skill-slot" id="s-magnet">
-                    <div class="skill-icon">🧲</div><div class="skill-key">K</div>
-                    <div class="cd-mask" id="cd-magnet"></div>
-                </div>
-                <div class="skill-slot" id="s-sonar" style="display:none;">
-                    <div class="skill-icon">📡</div><div class="skill-key">L</div>
-                    <div class="cd-mask" id="cd-sonar"></div>
-                </div>
+            <div class="skills">
+                <div class="s-box" id="sk-dash"><div>⚡</div><small>SPACE</small><div class="cd-bar" id="cd-dash"></div></div>
+                <div class="s-box" id="sk-shield"><div>🛡️</div><small>J</small><div class="cd-bar" id="cd-shield"></div></div>
+                <div class="s-box" id="sk-magnet"><div>🧲</div><small>K</small><div class="cd-bar" id="cd-magnet"></div></div>
+                <div class="s-box" id="sk-sonar" style="display:none"><div>📡</div><small>L</small><div class="cd-bar" id="cd-sonar"></div></div>
             </div>
         </div>
     </div>
 
 <script>
-/**
- * Deep Sea Evolution: Ultimate Edition
- * 核心架构：
- * 1. SafeStorage: 解决本地运行时的存储报错
- * 2. EntitySystem: 包含多关节骨骼动画系统 (Verlet Integration简化版)
- * 3. GameLoop: 负责逻辑与渲染分离
- * 4. Camera: 玩家居中，世界移动
+/** * 紧急错误处理：防止脚本报错导致黑屏
  */
-
-/* --- 0. 基础工具 --- */
-const SafeStorage = {
-    _mem: {},
-    available: false,
-    init() {
-        try { localStorage.setItem('test', '1'); localStorage.removeItem('test'); this.available = true; }
-        catch(e) { console.log('Storage restricted, using memory.'); }
-    },
-    get(k) { return this.available ? localStorage.getItem(k) : this._mem[k]; },
-    set(k, v) { if(this.available) localStorage.setItem(k, v); else this._mem[k] = v; }
+window.onerror = function(msg, url, line) {
+    const el = document.getElementById('global-error');
+    el.style.display = 'block';
+    el.innerText = "Error: " + msg + " (Line: " + line + ")";
+    return false; 
 };
-SafeStorage.init();
 
+/**
+ * 游戏配置
+ */
 const CFG = {
     PASS: 'xjblsy99',
-    WORLD_SIZE: 3000,
+    WORLD: 2500,
     LEVELS: [
-        { id:0, name:"阳光浅滩", target:60, startR:15, dark:0, skills:['dash','shield','magnet'], bg:['#006994','#003366'], spawns:['tetra','goldie','ray'] },
-        { id:1, name:"深渊禁区", target:200, startR:70, dark:0.95, skills:['dash','shield','magnet','sonar'], bg:['#050505','#1a0b2e'], spawns:['goldie','angler','shark','whale'] }
+        { id:0, name:"阳光浅滩", target:60, startR:15, dark:0, bg:['#006994','#003366'], skills:['dash','shield','magnet'], spawns:['tetra','goldie','ray'] },
+        { id:1, name:"深渊禁区", target:200, startR:70, dark:0.95, bg:['#050505','#1a0b2e'], skills:['dash','shield','magnet','sonar'], spawns:['goldie','angler','shark','whale'] }
     ],
     FISH: {
-        tetra:  { r:[5,12],   spd:3.0, color:'#ff00cc', type:'neon' },
-        goldie: { r:[12,25],  spd:2.2, color:'#ff9f43', type:'gold' },
-        ray:    { r:[20,35],  spd:2.5, color:'#00d2d3', type:'flat' },
-        angler: { r:[35,55],  spd:1.8, color:'#a55eea', type:'angler' },
-        shark:  { r:[50,80],  spd:4.0, color:'#7f8fa6', type:'shark', aggro:true },
-        whale:  { r:[90,150], spd:1.2, color:'#2f3542', type:'whale' }
+        tetra: {r:[5,12], spd:3, col:'#ff00cc', type:'neon'},
+        goldie: {r:[12,25], spd:2.2, col:'#ff9f43', type:'gold'},
+        ray: {r:[20,35], spd:2.5, col:'#00d2d3', type:'flat'},
+        angler: {r:[35,55], spd:1.8, col:'#a55eea', type:'angler'},
+        shark: {r:[50,80], spd:4, col:'#7f8fa6', type:'shark', aggro:true},
+        whale: {r:[90,150], spd:1.2, col:'#2f3542', type:'whale'}
     },
     SKILLS: {
-        dash: { cd:3000, dur:300, color:'#00f2fe' },
-        shield: { cd:12000, dur:3000, color:'#ffd700' },
-        magnet: { cd:15000, dur:4000, color:'#bd00ff', r:400 },
-        sonar: { cd:20000, dur:100, color:'#fff', r:1200 }
+        dash: {cd:3000, dur:300}, shield: {cd:12000, dur:3000},
+        magnet: {cd:15000, dur:4000, r:400}, sonar: {cd:20000, dur:100, r:1000}
     }
 };
 
-/* --- 1. 实体与骨骼系统 (High Quality Modeling) --- */
-class FishEntity {
-    constructor(x, y, r, color, type) {
-        this.x = x; this.y = y;
-        this.vx = 0; this.vy = 0;
-        this.r = r;
-        this.color = color;
-        this.type = type;
-        this.angle = 0;
-        
-        // 骨骼系统: 身体节点
-        // 每个节点跟随前一个节点，形成蛇形运动
-        this.bodyParts = [];
-        const partCount = type === 'shark' || type === 'whale' ? 8 : 5;
-        for(let i=0; i<partCount; i++) {
-            this.bodyParts.push({ x: x, y: y, r: r * (1 - i/(partCount+1)) });
+/**
+ * 存储系统 (防崩溃版)
+ */
+const Storage = {
+    user: null,
+    mem: {},
+    available: false,
+    init() {
+        try { localStorage.setItem('t','1'); localStorage.removeItem('t'); this.available=true; }
+        catch(e) { console.log('Using memory storage'); }
+    },
+    getSaves() {
+        const k = `DSE_${this.user}`;
+        const v = this.available ? localStorage.getItem(k) : this.mem[k];
+        return v ? JSON.parse(v) : [];
+    },
+    save(lvl, score) {
+        let s = this.getSaves();
+        const now = new Date().toLocaleDateString();
+        if(Game.saveId) {
+            const idx = s.findIndex(x=>x.id===Game.saveId);
+            if(idx>=0) { s[idx].level=lvl; s[idx].score=score; s[idx].date=now; }
+        } else {
+            Game.saveId = Date.now();
+            if(s.length>=4) s.shift();
+            s.push({id:Game.saveId, level:lvl, score:score, date:now});
         }
+        const val = JSON.stringify(s);
+        if(this.available) localStorage.setItem(`DSE_${this.user}`, val);
+        else this.mem[`DSE_${this.user}`] = val;
+    },
+    del(id) {
+        if(!confirm('删除?')) return;
+        let s = this.getSaves().filter(x=>x.id!==id);
+        const val = JSON.stringify(s);
+        if(this.available) localStorage.setItem(`DSE_${this.user}`, val);
+        else this.mem[`DSE_${this.user}`] = val;
+        this.loadUI();
+    },
+    loadUI() {
+        UI.show('p-saves');
+        const list = document.getElementById('slot-list');
+        list.innerHTML = '';
+        const s = this.getSaves();
+        if(s.length===0) list.innerHTML = '<div style="color:#666">暂无存档</div>';
+        s.forEach(x => {
+            const div = document.createElement('div');
+            div.className = 'slot';
+            div.innerHTML = `
+                <div onclick="Game.init(${x.level}, ${x.id})">
+                    <b style="color:var(--primary)">${CFG.LEVELS[x.level].name}</b>
+                    <span style="font-size:0.8em; color:#888">Size: ${Math.floor(x.score)}</span>
+                </div>
+                <div style="color:red; padding:0 10px;" onclick="Storage.del(${x.id})">×</div>
+            `;
+            list.appendChild(div);
+        });
+    },
+    saveQuit() {
+        this.save(Math.min(Game.lvlIdx+1, 1), Game.player.r);
+        this.loadUI();
     }
+};
+Storage.init();
 
-    updateBody(speed) {
-        // 头部位置就是 this.x, this.y
-        // 第0个身体节点跟随头部
-        this.solveLink(this.bodyParts[0], {x:this.x, y:this.y}, speed);
-        // 后续节点跟随前一个
-        for(let i=1; i<this.bodyParts.length; i++) {
-            this.solveLink(this.bodyParts[i], this.bodyParts[i-1], speed);
-        }
-    }
+/**
+ * 渲染器：负责绘制高质量鱼类
+ */
+const Render = {
+    fish(ctx, x, y, r, ang, col, type, phase) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(ang);
 
-    solveLink(current, target, speed) {
-        const dx = target.x - current.x;
-        const dy = target.y - current.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        const angle = Math.atan2(dy, dx);
-        
-        // 间距：基于半径的一定比例
-        const spacing = this.r * 0.4; 
-        
-        // 简单的IK跟随逻辑
-        if(dist > spacing) {
-            current.x = target.x - Math.cos(angle) * spacing;
-            current.y = target.y - Math.sin(angle) * spacing;
-        }
-    }
+        // 身体光泽
+        const g = ctx.createRadialGradient(0, -r*0.2, r*0.1, 0, 0, r);
+        g.addColorStop(0, '#fff'); g.addColorStop(0.3, col); g.addColorStop(1, '#000');
 
-    draw(ctx) {
-        // 1. 绘制身体连接 (平滑曲线)
-        ctx.fillStyle = this.color;
-        
-        // 头部
+        const swing = Math.sin(phase);
+
+        // 尾巴 (S形骨骼模拟)
+        ctx.fillStyle = col;
         ctx.beginPath();
-        ctx.arc(this.x, this.y, this.r, 0, Math.PI*2);
+        if(type==='shark') {
+            ctx.moveTo(-r*0.8,0);
+            ctx.quadraticCurveTo(-r*1.5, swing*r*0.5, -r*2.2, -r*0.8+swing*r*0.8);
+            ctx.lineTo(-r*2.2, r*0.8+swing*r*0.8);
+            ctx.quadraticCurveTo(-r*1.5, swing*r*0.5, -r*0.8, 0);
+        } else if(type==='whale') {
+             ctx.moveTo(-r*0.9, 0); ctx.quadraticCurveTo(-r*1.8, 0, -r*2.4, swing*r*0.5); 
+             ctx.lineTo(-r*2.4, -swing*r*0.5); ctx.quadraticCurveTo(-r*1.8, 0, -r*0.9, 0);
+        } else {
+            ctx.moveTo(-r*0.7,0); ctx.lineTo(-r*1.5, -r*0.6+swing*10); ctx.lineTo(-r*1.5, r*0.6+swing*10);
+        }
+        ctx.fill();
+
+        // 侧鳍
+        const fAng = Math.PI/4 + Math.sin(phase*0.8)*0.3;
+        ctx.beginPath(); ctx.ellipse(r*0.2, r*0.6, r*0.35, r*0.15, fAng, 0, Math.PI*2);
+        ctx.ellipse(r*0.2, -r*0.6, r*0.35, r*0.15, -fAng, 0, Math.PI*2);
+        ctx.fill();
+
+        // 身体主体
+        ctx.fillStyle = g;
+        ctx.beginPath();
+        if(type==='shark') ctx.ellipse(0,0, r*1.2, r*0.65, 0, 0, Math.PI*2);
+        else ctx.ellipse(0,0, r, r*0.8, 0, 0, Math.PI*2);
         ctx.fill();
 
         // 眼睛
-        const eyeOff = this.r*0.4;
-        const eyeX = this.x + Math.cos(this.angle + 0.5) * eyeOff;
-        const eyeY = this.y + Math.sin(this.angle + 0.5) * eyeOff;
-        const eyeX2 = this.x + Math.cos(this.angle - 0.5) * eyeOff;
-        const eyeY2 = this.y + Math.sin(this.angle - 0.5) * eyeOff;
-        
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(eyeX, eyeY, this.r*0.3, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(eyeX2, eyeY2, this.r*0.3, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.arc(eyeX, eyeY, this.r*0.15, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(eyeX2, eyeY2, this.r*0.15, 0, Math.PI*2); ctx.fill();
+        const ex = r*0.4, ey = r*0.35, es = r*0.25;
+        ctx.fillStyle='#fff'; 
+        ctx.beginPath(); ctx.arc(ex, -ey, es, 0, 6.28); ctx.fill();
+        ctx.beginPath(); ctx.arc(ex, ey, es, 0, 6.28); ctx.fill();
+        ctx.fillStyle='#000';
+        ctx.beginPath(); ctx.arc(ex+2, -ey, es*0.5, 0, 6.28); ctx.fill();
+        ctx.beginPath(); ctx.arc(ex+2, ey, es*0.5, 0, 6.28); ctx.fill();
 
-        // 身体节点
-        ctx.fillStyle = this.color;
-        this.bodyParts.forEach((p, i) => {
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
-            ctx.fill();
-            
-            // 装饰：鲨鱼背鳍
-            if(this.type === 'shark' && i === 1) {
-                ctx.save();
-                ctx.translate(p.x, p.y);
-                ctx.rotate(this.angle);
-                ctx.beginPath();
-                ctx.moveTo(0,0); ctx.lineTo(-this.r, -this.r*2); ctx.lineTo(this.r, 0);
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                ctx.fill();
-                ctx.restore();
-            }
-        });
-
-        // 灯笼鱼的灯
-        if(this.type === 'angler') {
-            const lx = this.x + Math.cos(this.angle)*this.r*1.5;
-            const ly = this.y + Math.sin(this.angle)*this.r*1.5;
-            ctx.beginPath(); ctx.moveTo(this.x, this.y); ctx.lineTo(lx, ly);
-            ctx.strokeStyle = '#888'; ctx.lineWidth = 2; ctx.stroke();
-            ctx.beginPath(); ctx.arc(lx, ly, 6, 0, Math.PI*2); 
-            ctx.fillStyle = '#ff0'; ctx.fill();
-            ctx.shadowBlur = 20; ctx.shadowColor = '#ff0'; ctx.fill(); ctx.shadowBlur = 0;
+        // 灯笼鱼灯
+        if(type==='angler') {
+            ctx.strokeStyle='#888'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.moveTo(r*0.5, -r*0.2); ctx.quadraticCurveTo(r, -r*1.5, r*1.5, -r*1.2); ctx.stroke();
+            ctx.fillStyle='#ff0'; ctx.shadowBlur=20; ctx.shadowColor='#ff0';
+            ctx.beginPath(); ctx.arc(r*1.5, -r*1.2, 5, 0, 6.28); ctx.fill(); ctx.shadowBlur=0;
         }
+
+        ctx.restore();
     }
-}
+};
 
-/* --- 2. 游戏核心 --- */
+/**
+ * 游戏主逻辑
+ */
 const Game = {
-    canvas: null, ctx: null,
+    cvs: null, ctx: null,
     W: 0, H: 0,
-    loopId: null,
     state: 'STOP',
+    loopId: null,
     
-    // 摄像机
-    cam: { x:0, y:0 },
-
-    player: null,
+    cam: {x:0, y:0},
+    player: {x:0, y:0, vx:0, vy:0, r:0, ang:0, tail:0, lives:3, inv:0, skills:{}},
     enemies: [],
-    particles: [],
+    parts: [], // 粒子
     keys: {},
     
-    levelIdx: 0,
+    lvlIdx: 0,
     saveId: null,
     shake: 0,
 
-    init() {
-        this.canvas = document.getElementById('gameCanvas');
-        this.ctx = this.canvas.getContext('2d');
+    boot() {
+        this.cvs = document.getElementById('gameCanvas');
+        this.ctx = this.cvs.getContext('2d');
         this.resize();
+        window.addEventListener('resize', ()=>this.resize());
         
-        window.addEventListener('resize', () => this.resize());
-        
-        // 键盘监听
-        window.addEventListener('keydown', e => {
+        window.addEventListener('keydown', e=>{
             this.keys[e.key] = true;
-            if(this.state === 'PLAY') {
-                if(e.code === 'Space') this.skill('dash');
-                if(e.code === 'KeyJ') this.skill('shield');
-                if(e.code === 'KeyK') this.skill('magnet');
-                if(e.code === 'KeyL') this.skill('sonar');
+            if(this.state==='PLAY') {
+                if(e.code==='Space') this.cast('dash');
+                if(e.code==='KeyJ') this.cast('shield');
+                if(e.code==='KeyK') this.cast('magnet');
+                if(e.code==='KeyL') this.cast('sonar');
             }
-            if(e.key === 'Enter') UI.handleEnter();
+            if(e.key==='Enter') UI.enterKey();
         });
-        window.addEventListener('keyup', e => this.keys[e.key] = false);
+        window.addEventListener('keyup', e=>this.keys[e.key]=false);
     },
 
     resize() {
         this.W = window.innerWidth;
         this.H = window.innerHeight;
-        this.canvas.width = this.W;
-        this.canvas.height = this.H;
+        this.cvs.width = this.W;
+        this.cvs.height = this.H;
     },
 
-    start(lvlIdx, saveId) {
-        if(!this.ctx) return; // 防止过早调用
+    init(lvl, sid) {
+        this.lvlIdx = lvl;
+        this.saveId = sid;
+        const cfg = CFG.LEVELS[lvl];
         
-        this.levelIdx = lvlIdx;
-        this.saveId = saveId;
-        const cfg = CFG.LEVELS[lvlIdx];
-
-        // 初始化玩家 (位于世界中心)
-        this.player = new FishEntity(CFG.WORLD_SIZE/2, CFG.WORLD_SIZE/2, cfg.startR, '#00f2fe', 'player');
-        this.player.lives = 3;
-        this.player.invincible = 0;
-        this.player.skills = {
-            dash:{cd:0,active:false}, shield:{cd:0,active:false}, magnet:{cd:0,active:false}, sonar:{cd:0,active:false}
-        };
+        this.player.x = CFG.WORLD/2; this.player.y = CFG.WORLD/2;
+        this.player.vx = 0; this.player.vy = 0;
+        this.player.r = cfg.startR;
+        this.player.lives = 3; this.player.inv = 0;
+        
+        // Reset skills
+        ['dash','shield','magnet','sonar'].forEach(k => {
+            this.player.skills[k] = {cd:0, active:false};
+        });
 
         this.enemies = [];
-        this.particles = [];
+        this.parts = [];
         this.state = 'PLAY';
         
         UI.setupHUD(cfg);
         this.loop();
     },
 
-    retry() { this.start(this.levelIdx, this.saveId); },
+    nextLevel() {
+        Storage.save(this.lvlIdx+1, this.player.r);
+        this.init(this.lvlIdx+1, this.saveId);
+    },
+    retry() { this.init(this.lvlIdx, this.saveId); },
 
     loop() {
         if(this.state !== 'PLAY') return;
-
-        // 1. 清空画布
-        this.ctx.clearRect(0, 0, this.W, this.H);
         
+        this.ctx.clearRect(0,0,this.W,this.H);
         this.update();
         this.draw();
-
-        this.loopId = requestAnimationFrame(() => this.loop());
+        
+        this.loopId = requestAnimationFrame(()=>this.loop());
     },
 
     update() {
         const p = this.player;
-        const lvl = CFG.LEVELS[this.levelIdx];
-        const dt = 16;
-
-        // --- 玩家控制 ---
-        let acc = 0.6;
-        let drag = 0.94;
-        let maxSpd = 8 * (30 / (p.r + 20)); // 体型越大越慢
+        const lvl = CFG.LEVELS[this.lvlIdx];
         
-        if(p.skills.dash.active) maxSpd *= 2.5;
+        // 1. 玩家物理
+        let acc = 0.5;
+        let max = 8 * (30/(p.r+20));
+        if(p.skills.dash.active) max *= 2.5;
 
         if(this.keys['ArrowUp'] || this.keys['w']) p.vy -= acc;
         if(this.keys['ArrowDown'] || this.keys['s']) p.vy += acc;
         if(this.keys['ArrowLeft'] || this.keys['a']) p.vx -= acc;
         if(this.keys['ArrowRight'] || this.keys['d']) p.vx += acc;
 
-        p.vx *= drag; p.vy *= drag;
-        // 限速
-        const spd = Math.sqrt(p.vx**2 + p.vy**2);
-        if(spd > maxSpd) { p.vx = (p.vx/spd)*maxSpd; p.vy = (p.vy/spd)*maxSpd; }
+        p.vx *= 0.94; p.vy *= 0.94;
+        let spd = Math.sqrt(p.vx**2 + p.vy**2);
+        if(spd > max) { p.vx=(p.vx/spd)*max; p.vy=(p.vy/spd)*max; }
 
         p.x += p.vx; p.y += p.vy;
         
-        // 世界边界限制
-        if(p.x < p.r) p.x=p.r; if(p.x > CFG.WORLD_SIZE-p.r) p.x=CFG.WORLD_SIZE-p.r;
-        if(p.y < p.r) p.y=p.r; if(p.y > CFG.WORLD_SIZE-p.r) p.y=CFG.WORLD_SIZE-p.r;
+        // 边界
+        if(p.x<p.r) p.x=p.r; if(p.x>CFG.WORLD-p.r) p.x=CFG.WORLD-p.r;
+        if(p.y<p.r) p.y=p.r; if(p.y>CFG.WORLD-p.r) p.y=CFG.WORLD-p.r;
 
-        // 计算角度
-        if(spd > 0.1) p.angle = Math.atan2(p.vy, p.vx);
-        
-        // 更新骨骼
-        p.updateBody(spd);
+        if(spd>0.1) p.ang = Math.atan2(p.vy, p.vx);
+        p.tail += 0.2 + spd*0.05;
 
-        // --- 摄像机跟随 ---
-        // 目标是让玩家在屏幕中间: CamX = P.x - ScreenW/2
-        let targetCamX = p.x - this.W/2;
-        let targetCamY = p.y - this.H/2;
-        // 平滑移动 (Lerp)
-        this.cam.x += (targetCamX - this.cam.x) * 0.1;
-        this.cam.y += (targetCamY - this.cam.y) * 0.1;
-        
-        // 震动衰减
-        if(this.shake > 0) this.shake *= 0.9;
+        // 摄像机
+        this.cam.x += (p.x - this.W/2 - this.cam.x) * 0.1;
+        this.cam.y += (p.y - this.H/2 - this.cam.y) * 0.1;
 
-        // --- 敌人生成 ---
-        if(this.enemies.length < 25 && Math.random() < 0.03) {
-            this.spawnEnemy(lvl);
-        }
+        if(this.shake>0) this.shake *= 0.9;
 
-        // --- 敌人逻辑 ---
-        for(let i = this.enemies.length-1; i>=0; i--) {
+        // 2. 敌人
+        if(this.enemies.length < 25 && Math.random()<0.03) this.spawn(lvl);
+
+        for(let i=this.enemies.length-1; i>=0; i--) {
             let e = this.enemies[i];
             
-            // AI
-            if(e.stunned > 0) {
-                e.stunned--; e.vx *= 0.9; e.vy *= 0.9;
-            } else {
-                // 鲨鱼追击
+            if(e.stun>0) { e.stun--; e.vx*=0.9; e.vy*=0.9; }
+            else {
                 if(e.aggro && !p.skills.shield.active) {
-                    const dx = p.x - e.x, dy = p.y - e.y;
-                    const d = Math.sqrt(dx*dx + dy*dy);
-                    if(d < 800) { e.vx += (dx/d)*0.25; e.vy += (dy/d)*0.25; }
+                    const dx=p.x-e.x, dy=p.y-e.y;
+                    const d = Math.sqrt(dx*dx+dy*dy);
+                    if(d<800) { e.vx+=(dx/d)*0.25; e.vy+=(dy/d)*0.25; }
                 }
-                // 磁吸
-                if(p.skills.magnet.active && e.r < p.r) {
-                    const dx = p.x - e.x, dy = p.y - e.y;
-                    const d = Math.sqrt(dx*dx + dy*dy);
-                    if(d < CFG.SKILLS.magnet.r) { e.vx += (dx/d)*0.8; e.vy += (dy/d)*0.8; }
+                if(p.skills.magnet.active && e.r<p.r) {
+                    const dx=p.x-e.x, dy=p.y-e.y;
+                    const d = Math.sqrt(dx*dx+dy*dy);
+                    if(d<CFG.SKILLS.magnet.r) { e.vx+=(dx/d)*0.8; e.vy+=(dy/d)*0.8; }
                 }
-                
-                e.x += e.vx; e.y += e.vy;
+                e.x+=e.vx; e.y+=e.vy;
             }
-            
-            const espd = Math.sqrt(e.vx**2 + e.vy**2);
-            if(espd > 0.1) e.angle = Math.atan2(e.vy, e.vx);
-            e.updateBody(espd);
 
-            // 碰撞检测
+            const es = Math.sqrt(e.vx**2+e.vy**2);
+            if(es>0.1) e.ang = Math.atan2(e.vy, e.vx);
+            e.tail += 0.15 + es*0.05;
+
+            // 距离剔除
+            if(Math.abs(e.x - p.x) > 2000 || Math.abs(e.y - p.y) > 2000) {
+                this.enemies.splice(i,1); continue;
+            }
+
+            // 碰撞
             const dist = Math.sqrt((p.x-e.x)**2 + (p.y-e.y)**2);
-            
-            if(dist < p.r + e.r * 0.8) {
-                if(p.r > e.r * 1.1) {
-                    // 吃掉
-                    this.enemies.splice(i, 1);
+            if(dist < p.r + e.r*0.8) {
+                if(p.r > e.r*1.1) {
+                    this.enemies.splice(i,1);
                     p.r += e.r * 0.08;
-                    this.spawnParticles(e.x, e.y, e.color);
-                    UI.floatText(`+${Math.floor(e.r)}`, e.x - this.cam.x, e.y - this.cam.y, '#ffd700');
-                    UI.updateStats();
-                    if(p.r >= lvl.target) { this.state = 'PAUSED'; UI.showPanel('p-win'); }
-                } else if (e.r > p.r) {
-                    // 受伤
-                    if(p.invincible <= 0 && !p.skills.shield.active) {
-                        p.lives--; p.invincible = 120; this.shake = 20;
-                        UI.floatText("危险!", p.x - this.cam.x, p.y - 50 - this.cam.y, '#ff0055');
-                        UI.updateStats();
-                        if(p.lives <= 0) { this.state = 'OVER'; UI.showPanel('p-dead'); }
+                    this.boom(e.x, e.y, e.color);
+                    UI.txt(`+${Math.floor(e.r)}`, e.x, e.y, '#ffd700');
+                    UI.stats();
+                    if(p.r >= lvl.target) { this.state='PAUSED'; UI.show('p-win'); }
+                } else if(e.r > p.r) {
+                    if(p.inv<=0 && !p.skills.shield.active) {
+                        p.lives--; p.inv=120; this.shake=20;
+                        UI.txt("危险!", p.x, p.y-50, '#ff0055');
+                        UI.stats();
+                        if(p.lives<=0) { this.state='OVER'; UI.show('p-dead'); }
                     }
                 }
             }
-            
-            // 距离太远销毁
-            const distToCam = Math.sqrt((e.x - p.x)**2 + (e.y - p.y)**2);
-            if(distToCam > 2000) this.enemies.splice(i, 1);
+        }
+        if(p.inv>0) p.inv--;
+
+        // 3. 粒子
+        for(let i=this.parts.length-1; i>=0; i--) {
+            let pt = this.parts[i];
+            pt.x+=pt.vx; pt.y+=pt.vy; pt.l-=0.03;
+            if(pt.l<=0) this.parts.splice(i,1);
         }
 
-        if(p.invincible > 0) p.invincible--;
-
-        // --- 粒子更新 ---
-        for(let i=this.particles.length-1; i>=0; i--) {
-            let pt = this.particles[i];
-            pt.x += pt.vx; pt.y += pt.vy; pt.life -= 0.03;
-            if(pt.life <= 0) this.particles.splice(i,1);
-        }
-
-        // --- 技能CD ---
+        // 4. CD
         for(let k in p.skills) {
             if(p.skills[k].cd > 0) {
-                p.skills[k].cd -= dt;
-                UI.updateCD(k, p.skills[k].cd);
+                p.skills[k].cd -= 16;
+                UI.cd(k, p.skills[k].cd);
             }
+        }
+    },
+
+    spawn(lvl) {
+        const k = lvl.spawns[Math.floor(Math.random()*lvl.spawns.length)];
+        const proto = CFG.FISH[k];
+        
+        let ex, ey;
+        // 生成在摄像机外
+        if(Math.random()>0.5) {
+            ex = this.cam.x + (Math.random()>0.5?-200:this.W+200);
+            ey = this.cam.y + Math.random()*this.H;
+        } else {
+            ex = this.cam.x + Math.random()*this.W;
+            ey = this.cam.y + (Math.random()>0.5?-200:this.H+200);
+        }
+        
+        if(ex<0)ex=0; if(ex>CFG.WORLD)ex=CFG.WORLD;
+        if(ey<0)ey=0; if(ey>CFG.WORLD)ey=CFG.WORLD;
+
+        let r = proto.r[0] + Math.random()*(proto.r[1]-proto.r[0]);
+        if(this.player.r>100 && !proto.aggro && Math.random()<0.3) r*=1.5;
+
+        this.enemies.push({
+            x:ex, y:ey, vx:(Math.random()-0.5)*proto.spd, vy:(Math.random()-0.5)*proto.spd,
+            r:r, color:proto.col, type:proto.type, aggro:proto.aggro,
+            ang:0, tail:0, stun:0
+        });
+    },
+
+    boom(x, y, c) {
+        for(let i=0; i<8; i++) this.parts.push({
+            x:x, y:y, vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10,
+            r:Math.random()*5, color:c, l:1
+        });
+    },
+
+    cast(k) {
+        if(!CFG.LEVELS[this.lvlIdx].skills.includes(k)) return;
+        const s = this.player.skills[k];
+        const cfg = CFG.SKILLS[k];
+        if(s.cd<=0 && !s.active) {
+            s.active=true; s.cd=cfg.cd;
+            if(k==='sonar') {
+                this.shake=30; this.enemies.forEach(e=>e.stun=180);
+                UI.txt("SONAR!", this.player.x, this.player.y-50, '#fff');
+            } else {
+                UI.txt(k.toUpperCase(), this.player.x, this.player.y-50, cfg.color);
+            }
+            setTimeout(()=>s.active=false, cfg.dur);
         }
     },
 
     draw() {
         const ctx = this.ctx;
         const p = this.player;
-        const lvl = CFG.LEVELS[this.levelIdx];
+        const lvl = CFG.LEVELS[this.lvlIdx];
 
-        // 应用摄像机变换
         ctx.save();
-        // 震动效果
-        let sx = (Math.random()-0.5) * this.shake;
-        let sy = (Math.random()-0.5) * this.shake;
-        ctx.translate(-this.cam.x + sx, -this.cam.y + sy);
+        // 摄像机 + 震动
+        ctx.translate(-this.cam.x + (Math.random()-0.5)*this.shake, -this.cam.y + (Math.random()-0.5)*this.shake);
 
-        // 1. 背景 (视差背景或网格)
-        const g = ctx.createLinearGradient(0,0,0,CFG.WORLD_SIZE);
-        g.addColorStop(0, lvl.bg[0]); g.addColorStop(1, lvl.bg[1]);
-        ctx.fillStyle = g;
-        ctx.fillRect(0,0,CFG.WORLD_SIZE, CFG.WORLD_SIZE);
+        // 背景
+        const bg = ctx.createLinearGradient(0,0,0,CFG.WORLD);
+        bg.addColorStop(0, lvl.bg[0]); bg.addColorStop(1, lvl.bg[1]);
+        ctx.fillStyle = bg; ctx.fillRect(0,0,CFG.WORLD, CFG.WORLD);
         
-        // 绘制世界边界
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-        ctx.lineWidth = 10;
-        ctx.strokeRect(0,0,CFG.WORLD_SIZE,CFG.WORLD_SIZE);
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth=10;
+        ctx.strokeRect(0,0,CFG.WORLD, CFG.WORLD);
 
-        // 2. 深海光照层
+        // 深海光照
         if(lvl.dark > 0) {
-            // 先画整个黑层
             ctx.fillStyle = `rgba(0,0,0,${lvl.dark})`;
-            ctx.fillRect(this.cam.x, this.cam.y, this.W, this.H); // 优化：只画屏幕范围
-            
+            ctx.fillRect(this.cam.x, this.cam.y, this.W, this.H);
             ctx.globalCompositeOperation = 'destination-out';
             
-            // 玩家视野
-            this.drawLight(p.x, p.y, p.r*5+300);
-            
-            // 灯笼鱼视野
-            this.enemies.forEach(e => {
-                if(e.type === 'angler') this.drawLight(e.x, e.y, e.r*4+100);
-            });
+            this.light(p.x, p.y, p.r*5+250);
+            this.enemies.forEach(e=>{ if(e.type==='angler') this.light(e.x, e.y, e.r*4+100); });
             
             ctx.globalCompositeOperation = 'source-over';
         }
 
-        // 3. 技能特效
+        // 技能
         if(p.skills.shield.active) {
-            ctx.strokeStyle = '#ffd700'; ctx.lineWidth = 4; ctx.setLineDash([10,5]);
-            ctx.beginPath(); ctx.arc(p.x, p.y, p.r+25, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
+            ctx.strokeStyle='#ffd700'; ctx.lineWidth=4; ctx.setLineDash([10,5]);
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r+20, 0, 6.28); ctx.stroke(); ctx.setLineDash([]);
         }
         if(p.skills.magnet.active) {
-            ctx.strokeStyle = 'rgba(189,0,255,0.3)'; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.arc(p.x, p.y, CFG.SKILLS.magnet.r, 0, Math.PI*2); ctx.stroke();
+            ctx.strokeStyle='rgba(189,0,255,0.3)'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.arc(p.x, p.y, CFG.SKILLS.magnet.r, 0, 6.28); ctx.stroke();
         }
         if(p.skills.sonar.active) {
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 20;
-            ctx.beginPath(); ctx.arc(p.x, p.y, CFG.SKILLS.sonar.r, 0, Math.PI*2); ctx.stroke();
+            ctx.strokeStyle='#fff'; ctx.lineWidth=20;
+            ctx.beginPath(); ctx.arc(p.x, p.y, CFG.SKILLS.sonar.r, 0, 6.28); ctx.stroke();
         }
 
-        // 4. 实体绘制
-        this.enemies.forEach(e => e.draw(ctx));
-        
-        // 玩家 (闪烁无敌)
-        if(p.invincible%10 < 5) p.draw(ctx);
+        // 实体
+        this.enemies.forEach(e => Render.fish(ctx, e.x, e.y, e.r, e.ang, e.color, e.type, e.tail));
+        if(p.inv%10 < 5) Render.fish(ctx, p.x, p.y, p.r, p.ang, '#00f2fe', 'player', p.tail);
 
-        // 5. 粒子
-        this.particles.forEach(pt => {
-            ctx.globalAlpha = pt.life; ctx.fillStyle = pt.color;
-            ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, Math.PI*2); ctx.fill();
+        // 粒子
+        this.parts.forEach(pt => {
+            ctx.globalAlpha=pt.l; ctx.fillStyle=pt.color;
+            ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, 6.28); ctx.fill();
         });
-        ctx.globalAlpha = 1;
+        ctx.globalAlpha=1;
 
-        ctx.restore(); // 结束摄像机
+        ctx.restore();
     },
 
-    drawLight(x, y, r) {
+    light(x, y, r) {
         const g = this.ctx.createRadialGradient(x, y, r*0.1, x, y, r);
-        g.addColorStop(0, 'rgba(0,0,0,1)');
-        g.addColorStop(1, 'rgba(0,0,0,0)');
-        this.ctx.fillStyle = g;
-        this.ctx.beginPath(); this.ctx.arc(x, y, r, 0, Math.PI*2); this.ctx.fill();
-    },
-
-    spawnEnemy(lvl) {
-        const key = lvl.spawns[Math.floor(Math.random()*lvl.spawns.length)];
-        const proto = CFG.FISH[key];
-        
-        // 在屏幕外生成
-        let ex, ey;
-        if(Math.random()>0.5) {
-            ex = this.player.x + (Math.random()>0.5?1:-1) * (this.W/2 + 200);
-            ey = this.player.y + (Math.random()-0.5) * this.H;
-        } else {
-            ex = this.player.x + (Math.random()-0.5) * this.W;
-            ey = this.player.y + (Math.random()>0.5?1:-1) * (this.H/2 + 200);
-        }
-        
-        // 边界检查
-        if(ex<0) ex=0; if(ex>CFG.WORLD_SIZE) ex=CFG.WORLD_SIZE;
-        if(ey<0) ey=0; if(ey>CFG.WORLD_SIZE) ey=CFG.WORLD_SIZE;
-
-        let r = proto.r[0] + Math.random()*(proto.r[1]-proto.r[0]);
-        // 动态难度
-        if(this.player.r > 100 && Math.random()<0.3 && !proto.aggro) r *= 1.5;
-
-        const e = new FishEntity(ex, ey, r, proto.color, proto.type);
-        // 给个初始速度
-        e.vx = (Math.random()-0.5)*proto.spd;
-        e.vy = (Math.random()-0.5)*proto.spd;
-        e.aggro = proto.aggro;
-        e.stunned = 0;
-        
-        this.enemies.push(e);
-    },
-
-    spawnParticles(x, y, color) {
-        for(let i=0; i<8; i++) {
-            this.particles.push({
-                x:x, y:y, r:Math.random()*5+2, color:color, life:1,
-                vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10
-            });
-        }
-    },
-
-    skill(key) {
-        if(!CFG.LEVELS[this.levelIdx].skills.includes(key)) return;
-        const s = this.player.skills[key];
-        const sc = CFG.SKILLS[key];
-        
-        if(s.cd <= 0 && !s.active) {
-            s.active = true; s.cd = sc.cd;
-            if(key==='sonar') {
-                this.shake = 30;
-                this.enemies.forEach(e => e.stunned = 180);
-                UI.floatText("SONAR!", this.player.x - this.cam.x, this.player.y - 50 - this.cam.y, '#fff');
-            } else {
-                UI.floatText(key.toUpperCase(), this.player.x - this.cam.x, this.player.y - 50 - this.cam.y, sc.color);
-            }
-            setTimeout(() => s.active = false, sc.dur);
-        }
+        g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        this.ctx.fillStyle=g; this.ctx.beginPath(); this.ctx.arc(x, y, r, 0, 6.28); this.ctx.fill();
     }
 };
 
 /* --- UI 管理 --- */
 const UI = {
-    panels: {
-        pass: document.getElementById('p-pass'),
-        login: document.getElementById('p-login'),
-        saves: document.getElementById('p-saves'),
-        hud: document.getElementById('hud'),
-        win: document.getElementById('p-win'),
-        dead: document.getElementById('p-dead')
+    show(id) {
+        document.querySelectorAll('.panel').forEach(p => p.style.display = 'none');
+        if(id) document.getElementById(id).style.display = 'block';
     },
 
-    show(key) {
-        Object.values(this.panels).forEach(p => p.classList.remove('active'));
-        if(key && this.panels[key]) this.panels[key].classList.add('active');
+    enterKey() {
+        if(document.getElementById('p-pass').style.display !== 'none') this.checkPass();
+        else if(document.getElementById('p-login').style.display !== 'none') this.login();
     },
 
-    handleEnter() {
-        if(this.panels.pass.classList.contains('active')) this.verifyPass();
-        else if(this.panels.login.classList.contains('active')) this.login();
-    },
-
-    verifyPass() {
+    checkPass() {
         const v = document.getElementById('inp-pass').value;
-        if(v === CFG.PASS) this.show('login');
-        else {
-            const el = document.getElementById('inp-pass');
-            el.classList.add('error-shake');
-            setTimeout(() => el.classList.remove('error-shake'), 400);
-            el.value = '';
-        }
+        if(v === CFG.PASS) this.show('p-login');
+        else alert('密码错误');
     },
 
     login() {
         const v = document.getElementById('inp-user').value.toUpperCase().trim();
         if(v && /^[A-Z]+$/.test(v)) {
-            App.user = v;
-            App.loadSaves();
-        } else alert("请输入有效的拼音代号");
+            Storage.user = v;
+            Storage.loadUI();
+        } else alert('代号无效 (仅限字母)');
     },
 
     setupHUD(lvl) {
-        this.show('hud');
+        this.show('');
+        document.getElementById('hud').style.display = 'block';
+        document.getElementById('v-zone').innerText = lvl.name;
         document.getElementById('ui-target').innerText = lvl.target;
-        document.getElementById('ui-zone').innerText = lvl.name;
-        
-        ['dash','shield','magnet','sonar'].forEach(s => {
-            document.getElementById(`s-${s}`).style.display = lvl.skills.includes(s) ? 'flex' : 'none';
+        ['dash','shield','magnet','sonar'].forEach(k => {
+            document.getElementById(`sk-${k}`).style.display = lvl.skills.includes(k) ? 'flex' : 'none';
         });
-        this.updateStats();
+        this.stats();
     },
 
-    updateStats() {
-        document.getElementById('ui-size').innerText = Math.floor(Game.player.r);
-        document.getElementById('ui-lives').innerText = Game.player.lives;
+    stats() {
+        document.getElementById('v-size').innerText = Math.floor(Game.player.r);
+        document.getElementById('v-lives').innerText = Game.player.lives;
     },
 
-    updateCD(key, cd) {
-        const max = CFG.SKILLS[key].cd;
-        const pct = (cd/max)*100;
-        document.getElementById(`cd-${key}`).style.height = pct + '%';
-        const slot = document.getElementById(`s-${key}`);
-        if(cd<=0) slot.classList.add('active'); else slot.classList.remove('active');
+    cd(k, val) {
+        const max = CFG.SKILLS[k].cd;
+        const h = (val/max)*100;
+        document.getElementById(`cd-${k}`).style.height = h+'%';
+        const el = document.getElementById(`sk-${k}`);
+        if(val<=0) el.classList.add('active'); else el.classList.remove('active');
     },
 
-    floatText(txt, screenX, screenY, color) {
+    txt(t, x, y, c) {
+        // 转换世界坐标到屏幕坐标
+        const sx = x - Game.cam.x;
+        const sy = y - Game.cam.y;
+        if(sx<0 || sx>Game.W || sy<0 || sy>Game.H) return;
+        
         const d = document.createElement('div');
-        d.className = 'float-text'; d.innerText = txt;
-        d.style.left = screenX + this.panels.pass.offsetWidth/2 + 'px'; // 修正定位
-        d.style.left = (screenX + window.innerWidth/2) + 'px'; // 简化修正
-        d.style.left = screenX + 'px'; 
-        // 修正为绝对定位
-        d.style.left = Math.max(0, Math.min(window.innerWidth, screenX)) + 'px';
-        d.style.top = Math.max(0, Math.min(window.innerHeight, screenY)) + 'px';
-        d.style.color = color;
+        d.className = 'float-txt'; d.innerText = t;
+        d.style.left = sx+'px'; d.style.top = sy+'px'; d.style.color = c;
         document.getElementById('ui-layer').appendChild(d);
-        setTimeout(() => d.remove(), 800);
+        setTimeout(()=>d.remove(), 800);
     }
 };
 
-/* --- App 逻辑 --- */
-const App = {
-    user: null,
-
-    loadSaves() {
-        UI.show('saves');
-        document.getElementById('txt-welcome').innerText = `欢迎回来，指挥官 ${this.user}`;
-        const list = document.getElementById('slot-list');
-        list.innerHTML = '';
-        
-        const saves = this.getStorage();
-        if(saves.length===0) list.innerHTML = '<div style="color:#666">暂无记录</div>';
-        
-        saves.forEach(s => {
-            const d = document.createElement('div');
-            d.className = 'slot-item';
-            d.innerHTML = `
-                <div onclick="Game.start(${s.level}, ${s.id})">
-                    <div style="font-weight:bold; color:var(--accent)">${CFG.LEVELS[s.level].name}</div>
-                    <div style="font-size:0.8rem; color:#888">分数: ${Math.floor(s.score)} | ${s.date}</div>
-                </div>
-                <div class="del-btn" onclick="App.del(${s.id})">×</div>
-            `;
-            list.appendChild(d);
-        });
-    },
-
-    getStorage() {
-        const r = SafeStorage.get(`DSE_${this.user}`);
-        return r ? JSON.parse(r) : [];
-    },
-
-    save(lvl, score) {
-        let saves = this.getStorage();
-        const now = new Date().toLocaleDateString();
-        
-        if(Game.saveId) {
-            const idx = saves.findIndex(s=>s.id === Game.saveId);
-            if(idx>-1) { saves[idx].level=lvl; saves[idx].score=score; saves[idx].date=now; }
-        } else {
-            Game.saveId = Date.now();
-            if(saves.length >= 4) saves.shift();
-            saves.push({id:Game.saveId, level:lvl, score:score, date:now});
-        }
-        SafeStorage.set(`DSE_${this.user}`, JSON.stringify(saves));
-    },
-
-    del(id) {
-        if(!confirm('删除存档?')) return;
-        let s = this.getStorage().filter(i=>i.id !== id);
-        SafeStorage.set(`DSE_${this.user}`, JSON.stringify(s));
-        this.loadSaves();
-    },
-
-    newGame() { Game.start(0, null); },
-    logout() { this.user=null; UI.show('login'); },
-    nextLevel() { 
-        this.save(Game.levelIdx+1, Game.player.r); 
-        Game.start(Game.levelIdx+1, Game.saveId); 
-    },
-    saveAndQuit() {
-        this.save(Math.min(Game.levelIdx+1, 1), Game.player.r);
-        this.loadSaves();
-    }
-};
-
-// 启动入口：确保DOM加载完毕
+// 启动
 window.onload = function() {
-    Game.init();
-    // 初始显示
-    UI.show('pass');
+    Game.boot();
+    // 强制先显示密码框
+    UI.show('p-pass');
 };
 </script>
 </body>
