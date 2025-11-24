@@ -3,185 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Deep Sea Evolution: Fixed</title>
+    <title>Deep Sea Evolution: Final</title>
     <style>
         :root {
             --cyan: #00f2fe;
             --gold: #ffd700;
             --pink: #ff0055;
-            --bg: #02040a;
-            --glass: rgba(16, 24, 40, 0.9);
+            --bg: #000510;
+            --panel-bg: rgba(15, 25, 40, 0.95);
         }
 
         body {
             margin: 0; padding: 0; background: var(--bg);
-            overflow: hidden; font-family: 'Segoe UI', sans-serif;
-            color: white; width: 100vw; height: 100vh;
+            overflow: hidden; font-family: 'Microsoft YaHei', sans-serif;
+            width: 100vw; height: 100vh; color: white;
             display: flex; justify-content: center; align-items: center;
         }
 
         canvas { position: absolute; top: 0; left: 0; z-index: 1; }
 
+        /* UI层级必须最高 */
         #ui-layer {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            z-index: 100; pointer-events: none;
+            z-index: 999; pointer-events: none;
         }
 
-        /* 面板组件 */
         .panel {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
-            background: var(--glass);
+            background: var(--panel-bg);
             border: 1px solid rgba(255,255,255,0.15);
-            box-shadow: 0 0 60px rgba(0, 242, 254, 0.15);
-            backdrop-filter: blur(12px);
-            padding: 40px; border-radius: 16px;
-            text-align: center; min-width: 360px;
+            box-shadow: 0 0 50px rgba(0, 242, 254, 0.15);
+            backdrop-filter: blur(10px);
+            padding: 35px; border-radius: 15px;
+            text-align: center; min-width: 320px;
             pointer-events: auto; display: none;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        .panel.active { display: block; }
-        @keyframes popIn { from { transform: translate(-50%, -40%) scale(0.9); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+        .panel.active { display: block; animation: fade 0.3s ease; }
+        @keyframes fade { from { opacity: 0; transform: translate(-50%, -45%); } to { opacity: 1; transform: translate(-50%, -50%); } }
 
-        h1 { margin: 0 0 20px; font-size: 2rem; background: linear-gradient(to right, #fff, var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h1 { margin: 0 0 20px; color: var(--cyan); text-shadow: 0 0 10px var(--cyan); font-size: 24px; letter-spacing: 2px; }
         
         input {
-            background: rgba(0,0,0,0.5); border: 1px solid #444;
-            color: #fff; padding: 14px; width: 100%; border-radius: 8px;
-            font-size: 1.1rem; text-align: center; margin-bottom: 20px; outline: none;
+            background: rgba(0,0,0,0.5); border: 1px solid #555;
+            color: #fff; padding: 12px; width: 100%; border-radius: 6px;
+            font-size: 16px; text-align: center; margin-bottom: 20px; outline: none;
         }
-        input:focus { border-color: var(--cyan); box-shadow: 0 0 15px rgba(0,242,254,0.2); }
+        input:focus { border-color: var(--cyan); }
 
         .btn {
-            background: linear-gradient(135deg, #0061ff, #00f2fe);
-            border: none; padding: 12px 35px; border-radius: 50px;
-            color: #000; font-weight: bold; font-size: 1rem; cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3); transition: 0.2s;
+            background: linear-gradient(135deg, #0061ff, var(--cyan));
+            border: none; padding: 12px 30px; border-radius: 30px;
+            color: #000; font-weight: bold; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: 0.2s;
         }
-        .btn:hover { transform: scale(1.05); box-shadow: 0 8px 20px rgba(0,242,254,0.4); }
-        .btn.outline { background: transparent; border: 1px solid rgba(255,255,255,0.2); color: #fff; margin-top: 10px; }
-        .btn.outline:hover { background: rgba(255,255,255,0.1); }
+        .btn:hover { transform: scale(1.05); box-shadow: 0 6px 20px rgba(0,242,254,0.3); }
+        .btn.red { background: linear-gradient(135deg, #ff0055, #ff5e57); color: white; }
+        .btn.outline { background: transparent; border: 1px solid #666; color: #aaa; margin-top: 10px; padding: 8px 20px; font-size: 12px; }
+        .btn.outline:hover { border-color: #fff; color: #fff; }
 
-        /* 存档列表 */
-        .slot-list { margin: 15px 0; max-height: 220px; overflow-y: auto; }
+        .slot-list { margin: 15px 0; max-height: 200px; overflow-y: auto; text-align: left; }
         .slot {
-            background: rgba(255,255,255,0.05); padding: 12px; margin-bottom: 8px;
-            border-radius: 8px; display: flex; justify-content: space-between;
-            cursor: pointer; border: 1px solid transparent; transition: 0.2s;
+            background: rgba(255,255,255,0.05); padding: 10px; margin-bottom: 8px;
+            border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between;
+            border: 1px solid transparent;
         }
-        .slot:hover { border-color: var(--cyan); background: rgba(0,242,254,0.1); }
+        .slot:hover { border-color: var(--cyan); background: rgba(255,255,255,0.1); }
 
         /* HUD */
-        #hud { display: none; }
+        #hud { display: none; pointer-events: none; }
         .hud-top { position: absolute; top: 20px; left: 20px; display: flex; gap: 15px; }
-        .stat { background: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px; border: 1px solid #333; font-weight: bold; }
+        .stat { background: rgba(0,0,0,0.7); padding: 8px 15px; border-radius: 20px; border: 1px solid #333; font-weight: bold; font-size: 14px; }
         
         .skill-bar { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; pointer-events: auto; }
-        .sk-box {
-            width: 64px; height: 64px; background: rgba(10,20,30,0.9);
-            border: 2px solid #333; border-radius: 12px; position: relative;
+        .s-box {
+            width: 60px; height: 60px; background: rgba(0,0,0,0.8);
+            border: 2px solid #333; border-radius: 10px; position: relative;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .sk-box.active { border-color: var(--gold); box-shadow: 0 0 20px rgba(255,215,0,0.3); }
-        .sk-icon { font-size: 1.5rem; z-index: 2; }
-        .sk-key { font-size: 0.7rem; color: #888; margin-top: 3px; z-index: 2; font-weight: bold; }
-        .sk-cd { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: rgba(0,0,0,0.8); z-index: 1; transition: height 0.1s linear; }
+        .s-box.active { border-color: var(--gold); box-shadow: 0 0 15px var(--gold); transform: scale(1.1); }
+        .s-cd { position: absolute; bottom: 0; left: 0; width: 100%; height: 0%; background: rgba(0,0,0,0.7); transition: height 0.1s linear; }
 
         .float-txt {
-            position: absolute; font-weight: 900; font-size: 1.4rem; pointer-events: none;
-            text-shadow: 0 2px 5px #000; animation: float 0.8s forwards;
+            position: absolute; font-weight: 900; font-size: 20px; pointer-events: none;
+            text-shadow: 0 2px 4px #000; animation: float 0.8s forwards;
         }
         @keyframes float { to { transform: translateY(-50px); opacity: 0; } }
 
-        #err-log { position: fixed; top: 0; left: 0; width: 100%; background: #d00; color: #fff; text-align: center; display: none; z-index: 9999; }
+        #debug { position: fixed; top:0; left:0; background:red; color:white; z-index:10000; padding:10px; display:none; }
     </style>
 </head>
 <body>
 
-    <div id="err-log"></div>
+    <div id="debug"></div>
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer">
         <div id="p-pass" class="panel active">
-            <h1>SYSTEM LOCK</h1>
-            <p>输入最高权限密钥</p>
+            <h1>SYSTEM LOCKED</h1>
+            <p>请输入密钥启动系统</p>
             <input type="password" id="inp-pass" placeholder="Password">
-            <button class="btn" onclick="App.checkPass()">ACCESS</button>
+            <button class="btn" onclick="App.verifyPass()">ACCESS</button>
         </div>
 
         <div id="p-login" class="panel">
             <h1>IDENTITY</h1>
             <p>输入代号 (拼音首字母)</p>
-            <input type="text" id="inp-user" placeholder="例如: BOSS" maxlength="10">
+            <input type="text" id="inp-user" maxlength="8" placeholder="例: LZY">
             <button class="btn" onclick="App.login()">CONNECT</button>
+            <br>
+            <button class="btn outline" onclick="App.clearData()">⚠ 清除缓存数据</button>
         </div>
 
         <div id="p-saves" class="panel">
             <h1>ARCHIVES</h1>
             <div class="slot-list" id="slot-list"></div>
-            <button class="btn" onclick="App.newGame()">开始新征程</button>
+            <button class="btn" onclick="App.newGame()">开始新游戏</button>
             <br>
             <button class="btn outline" onclick="UI.show('p-login')">退出</button>
         </div>
 
         <div id="p-win" class="panel">
-            <h1 style="color:var(--gold)">DOMINATED</h1>
+            <h1 style="color:var(--gold)">VICTORY</h1>
             <p>海域已征服</p>
-            <div style="text-align: left; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin: 15px 0;">
-                <p style="margin:0; color:#fff">下一站: <b style="color:var(--pink)">深渊禁区</b></p>
-                <small style="color:#888">环境: 极度黑暗 | 威胁: 巨型生物</small>
-            </div>
-            <button class="btn" onclick="Game.nextLevel()">潜入深渊</button>
+            <button class="btn" onclick="Game.nextLevel()">下一关：深渊</button>
             <br>
-            <button class="btn outline" onclick="App.saveQuit()">存档休息</button>
+            <button class="btn outline" onclick="App.saveQuit()">存档退出</button>
         </div>
 
         <div id="p-dead" class="panel">
             <h1 style="color:var(--pink)">FAILURE</h1>
-            <p>生命讯号消失...</p>
-            <button class="btn" onclick="Game.retry()">重组基因</button>
+            <p>生命耗尽</p>
+            <button class="btn" onclick="Game.retry()">重试</button>
             <br>
             <button class="btn outline" onclick="App.loadSaves()">返回</button>
         </div>
 
         <div id="hud">
             <div class="hud-top">
-                <div class="stat" style="border-left:3px solid var(--pink); color:var(--pink)">❤ <span id="v-lives">3</span></div>
-                <div class="stat" style="border-left:3px solid var(--cyan); color:var(--cyan)">📏 <span id="v-size">0</span></div>
+                <div class="stat" style="color:var(--pink)">❤ <span id="v-lives">3</span></div>
+                <div class="stat" style="color:var(--cyan)">📏 <span id="v-size">0</span></div>
                 <div class="stat">⚓ <span id="v-zone">Zone</span></div>
             </div>
             <div class="skill-bar">
-                <div class="sk-box" id="s-dash"><div class="sk-icon">⚡</div><div class="sk-key">SPACE</div><div class="sk-cd" id="c-dash"></div></div>
-                <div class="sk-box" id="s-shield"><div class="sk-icon">🛡️</div><div class="sk-key">J</div><div class="sk-cd" id="c-shield"></div></div>
-                <div class="sk-box" id="s-magnet"><div class="sk-icon">🧲</div><div class="sk-key">K</div><div class="sk-cd" id="c-magnet"></div></div>
-                <div class="sk-box" id="s-sonar" style="display:none"><div class="sk-icon">📡</div><div class="sk-key">L</div><div class="sk-cd" id="c-sonar"></div></div>
+                <div class="s-box" id="s-dash"><div>⚡</div><small style="font-size:10px;color:#888">SPACE</small><div class="s-cd" id="c-dash"></div></div>
+                <div class="s-box" id="s-shield"><div>🛡️</div><small style="font-size:10px;color:#888">J</small><div class="s-cd" id="c-shield"></div></div>
+                <div class="s-box" id="s-magnet"><div>🧲</div><small style="font-size:10px;color:#888">K</small><div class="s-cd" id="c-magnet"></div></div>
+                <div class="s-box" id="s-sonar" style="display:none"><div>📡</div><small style="font-size:10px;color:#888">L</small><div class="s-cd" id="c-sonar"></div></div>
             </div>
         </div>
     </div>
 
 <script>
-/* --- 全局错误处理 (防止黑屏) --- */
+/* --- 0. 紧急错误处理 --- */
 window.onerror = function(msg, url, line) {
-    const el = document.getElementById('err-log');
+    const el = document.getElementById('debug');
     el.style.display = 'block';
     el.innerText = `Error: ${msg} (Line ${line})`;
     console.error(msg);
     return false;
 };
 
-/* --- 游戏配置 --- */
+/* --- 1. 配置 (严禁使用未定义变量) --- */
 const CFG = {
     PASS: 'xjblsy99',
-    WORLD: 2800,
+    WORLD: 2500,
     LEVELS: [
         { id:0, name:"阳光浅滩", target:60, startR:15, dark:0, bg:['#006994','#003366'], skills:['dash','shield','magnet'], spawns:['tetra','goldie','ray'] },
-        { id:1, name:"深渊禁区", target:200, startR:70, dark:0.96, bg:['#050505','#1a0b2e'], skills:['dash','shield','magnet','sonar'], spawns:['goldie','angler','shark','whale'] }
+        { id:1, name:"深渊禁区", target:200, startR:70, dark:0.95, bg:['#050505','#1a0b2e'], skills:['dash','shield','magnet','sonar'], spawns:['goldie','angler','shark','whale'] }
     ],
-    // 修复：统一使用 'color' 属性，避免 undefined 错误
     FISH: {
-        tetra:  { r:[6,14],   spd:3.2, color:'#ff00cc', type:'neon' },
-        goldie: { r:[15,28],  spd:2.4, color:'#ff9f43', type:'gold' },
-        ray:    { r:[25,40],  spd:2.6, color:'#00d2d3', type:'flat' },
+        tetra:  { r:[6,12],   spd:3.0, color:'#ff00cc', type:'neon' },
+        goldie: { r:[12,25],  spd:2.2, color:'#ff9f43', type:'gold' },
+        ray:    { r:[25,40],  spd:2.5, color:'#00d2d3', type:'flat' },
         angler: { r:[40,60],  spd:1.8, color:'#a55eea', type:'angler' },
         shark:  { r:[60,90],  spd:4.0, color:'#7f8fa6', type:'shark', aggro:true },
         whale:  { r:[100,180],spd:1.2, color:'#2f3542', type:'whale' }
@@ -192,58 +186,57 @@ const CFG = {
     }
 };
 
-/* --- 存储系统 (Safe Mode) --- */
+/* --- 2. 安全存储 --- */
 const Store = {
     mem: {}, ok: false,
     init() { try { localStorage.setItem('t','1'); localStorage.removeItem('t'); this.ok=true; } catch(e){} },
     get(k) { return this.ok ? localStorage.getItem(k) : this.mem[k]; },
-    set(k,v) { if(this.ok) localStorage.setItem(k,v); else this.mem[k]=v; }
+    set(k,v) { if(this.ok) localStorage.setItem(k,v); else this.mem[k]=v; },
+    clear() { if(this.ok) localStorage.clear(); }
 };
 Store.init();
 
-/* --- 渲染引擎 --- */
+/* --- 3. 渲染引擎 (含防崩逻辑) --- */
 const Render = {
-    // 核心修复：添加默认颜色fallback，防止报错
     fish(ctx, x, y, r, ang, color, type, phase) {
+        // ★★★ 核心修复：强制颜色检查 ★★★
+        const safeColor = color || '#ffffff'; 
+        
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(ang);
 
-        const safeColor = color || '#ffffff'; // 防止 undefined 崩溃
         const swing = Math.sin(phase);
 
-        // 1. 身体光泽 (伪3D)
+        // 身体渐变
         const g = ctx.createRadialGradient(0, -r*0.3, r*0.1, 0, 0, r);
         g.addColorStop(0, '#fff');
         g.addColorStop(0.4, safeColor);
         g.addColorStop(1, '#000');
 
-        // 2. 绘制尾巴 (骨骼模拟)
+        // 尾巴 (骨骼模拟)
         ctx.fillStyle = safeColor;
         ctx.beginPath();
         if(type === 'shark') {
-            // 鲨鱼有力尾巴
             ctx.moveTo(-r*0.8, 0);
             ctx.quadraticCurveTo(-r*1.6, swing*r*0.5, -r*2.4, -r*0.9+swing*r);
             ctx.lineTo(-r*2.4, r*0.9+swing*r);
             ctx.quadraticCurveTo(-r*1.6, swing*r*0.5, -r*0.8, 0);
         } else if(type === 'whale') {
-            // 鲸鱼宽尾
             ctx.moveTo(-r*0.9, 0); ctx.quadraticCurveTo(-r*1.8, 0, -r*2.5, -r*0.6+swing*r*0.4);
             ctx.lineTo(-r*2.5, r*0.6+swing*r*0.4); ctx.quadraticCurveTo(-r*1.8, 0, -r*0.9, 0);
         } else {
-            // 普通鱼尾
             ctx.moveTo(-r*0.7, 0); ctx.lineTo(-r*1.5, -r*0.6+swing*8); ctx.lineTo(-r*1.5, r*0.6+swing*8);
         }
         ctx.fill();
 
-        // 3. 侧鳍 (呼吸动画)
+        // 侧鳍
         const finAng = 0.6 + Math.sin(phase*0.8)*0.3;
         ctx.beginPath(); ctx.ellipse(r*0.2, r*0.6, r*0.3, r*0.15, finAng, 0, Math.PI*2);
         ctx.ellipse(r*0.2, -r*0.6, r*0.3, r*0.15, -finAng, 0, Math.PI*2);
         ctx.fill();
 
-        // 4. 身体主体
+        // 主体
         ctx.fillStyle = g;
         ctx.beginPath();
         if(type === 'shark') ctx.ellipse(0,0, r*1.3, r*0.65, 0, 0, Math.PI*2);
@@ -251,7 +244,7 @@ const Render = {
         else ctx.ellipse(0,0, r, r*0.75, 0, 0, Math.PI*2);
         ctx.fill();
 
-        // 5. 眼睛
+        // 眼睛
         const ex = r*0.4, ey = r*0.35, es = r*0.22;
         ctx.fillStyle='#fff'; 
         ctx.beginPath(); ctx.arc(ex, -ey, es, 0, 6.28); ctx.fill();
@@ -260,7 +253,7 @@ const Render = {
         ctx.beginPath(); ctx.arc(ex+1, -ey, es*0.5, 0, 6.28); ctx.fill();
         ctx.beginPath(); ctx.arc(ex+1, ey, es*0.5, 0, 6.28); ctx.fill();
 
-        // 6. 灯笼鱼特效
+        // 灯笼鱼灯
         if(type === 'angler') {
             ctx.strokeStyle='#888'; ctx.lineWidth=2;
             ctx.beginPath(); ctx.moveTo(r*0.5, -r*0.2); ctx.quadraticCurveTo(r, -r*1.5, r*1.5, -r*1.2); ctx.stroke();
@@ -269,19 +262,23 @@ const Render = {
         }
 
         ctx.restore();
+    },
+
+    light(ctx, x, y, r) {
+        const g = ctx.createRadialGradient(x, y, r*0.1, x, y, r);
+        g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x, y, r, 0, 6.28); ctx.fill();
     }
 };
 
-/* --- 游戏逻辑 --- */
+/* --- 4. 游戏引擎 --- */
 const Game = {
     cvs: null, ctx: null, W: 0, H: 0,
     state: 'STOP', loopId: null,
-    
     cam: {x:0, y:0},
-    p: { x:0, y:0, vx:0, vy:0, r:0, angle:0, tail:0, lives:3, inv:0, skills:{}, color:'#00f2fe' }, // 确保有 color
-    
-    enemies: [], parts: [], grid: [],
-    keys: {}, lvlIdx: 0, saveId: null, shake: 0,
+    // ★★★ 修复：初始化时给予默认颜色，防止第一帧渲染报错 ★★★
+    p: { x:0, y:0, vx:0, vy:0, r:0, angle:0, tail:0, lives:3, inv:0, skills:{}, color:'#00f2fe' },
+    enemies: [], grid: [], keys: {}, lvlIdx: 0, saveId: null, shake: 0,
 
     init() {
         this.cvs = document.getElementById('gameCanvas');
@@ -289,12 +286,9 @@ const Game = {
         this.resize();
         window.addEventListener('resize', ()=>this.resize());
         
-        // 生成背景参照物 (防止黑屏看起来像死机)
-        for(let i=0; i<80; i++) {
-            this.grid.push({
-                x: Math.random()*CFG.WORLD, y: Math.random()*CFG.WORLD,
-                r: Math.random()*2+1, a: Math.random()*0.2
-            });
+        // 背景网格
+        for(let i=0; i<100; i++) {
+            this.grid.push({ x:Math.random()*CFG.WORLD, y:Math.random()*CFG.WORLD, r:Math.random()*2+1 });
         }
 
         window.addEventListener('keydown', e => {
@@ -320,16 +314,14 @@ const Game = {
 
         this.p.x = CFG.WORLD/2; this.p.y = CFG.WORLD/2;
         this.p.vx = 0; this.p.vy = 0;
-        this.p.r = cfg.startR;
-        this.p.lives = 3; this.p.inv = 0;
-        this.p.color = '#00f2fe'; // 强制重置玩家颜色
+        this.p.r = cfg.startR; this.p.lives = 3; this.p.inv = 0;
+        this.p.color = '#00f2fe'; // 确保颜色存在
         
-        this.cam.x = this.p.x - this.W/2; // 立即对齐摄像机
+        this.cam.x = this.p.x - this.W/2;
         this.cam.y = this.p.y - this.H/2;
 
         ['dash','shield','magnet','sonar'].forEach(k => this.p.skills[k] = {cd:0, active:false});
-        
-        this.enemies = []; this.parts = [];
+        this.enemies = [];
         this.state = 'PLAY';
         
         UI.setupHUD(cfg);
@@ -351,7 +343,7 @@ const Game = {
         const p = this.p;
         const lvl = CFG.LEVELS[this.lvlIdx];
 
-        // 1. 玩家移动
+        // 移动
         let acc = 0.5;
         let max = 8 * (30/(p.r+20));
         if(p.skills.dash.active) max *= 2.5;
@@ -374,24 +366,26 @@ const Game = {
         if(spd > 0.1) p.angle = Math.atan2(p.vy, p.vx);
         p.tail += 0.2 + spd*0.05;
 
-        // 摄像机跟随
+        // 摄像机
         this.cam.x += (p.x - this.W/2 - this.cam.x) * 0.1;
         this.cam.y += (p.y - this.H/2 - this.cam.y) * 0.1;
         if(this.shake > 0) this.shake *= 0.9;
 
-        // 2. 敌人逻辑
-        if(this.enemies.length < 22 && Math.random()<0.03) this.spawn(lvl);
+        // 生成敌人
+        if(this.enemies.length < 25 && Math.random()<0.03) this.spawn(lvl);
 
+        // 敌人逻辑
         for(let i=this.enemies.length-1; i>=0; i--) {
             let e = this.enemies[i];
-            
+            // 修复：兼容旧存档可能没有颜色的情况
+            if(!e.color) e.color = '#ffffff'; 
+
             if(e.stun > 0) { e.stun--; e.vx *= 0.9; e.vy *= 0.9; }
             else {
-                // AI
                 if(e.aggro && !p.skills.shield.active) {
                     let dx = p.x-e.x, dy = p.y-e.y;
                     let d = Math.sqrt(dx*dx+dy*dy);
-                    if(d < 700) { e.vx += (dx/d)*0.2; e.vy += (dy/d)*0.2; }
+                    if(d < 700) { e.vx += (dx/d)*0.25; e.vy += (dy/d)*0.25; }
                 }
                 if(p.skills.magnet.active && e.r < p.r) {
                     let dx = p.x-e.x, dy = p.y-e.y;
@@ -405,7 +399,6 @@ const Game = {
             if(es > 0.1) e.angle = Math.atan2(e.vy, e.vx);
             e.tail += 0.15 + es*0.05;
 
-            // 剔除
             if(Math.abs(e.x - p.x) > 2000 || Math.abs(e.y - p.y) > 2000) {
                 this.enemies.splice(i,1); continue;
             }
@@ -414,19 +407,16 @@ const Game = {
             let dist = Math.sqrt((p.x-e.x)**2 + (p.y-e.y)**2);
             if(dist < p.r + e.r*0.8) {
                 if(p.r > e.r*1.1) {
-                    // 吃
                     this.enemies.splice(i,1);
                     p.r += e.r * 0.08;
-                    this.boom(e.x, e.y, e.color);
-                    UI.txt(`+${Math.floor(e.r)}`, e.x - this.cam.x, e.y - this.cam.y, '#ffd700');
-                    UI.hud();
+                    UI.floatText(`+${Math.floor(e.r)}`, e.x - this.cam.x, e.y - this.cam.y, '#ffd700');
+                    UI.updateHUD();
                     if(p.r >= lvl.target) { this.state='PAUSED'; UI.show('p-win'); }
                 } else if(e.r > p.r) {
-                    // 受伤
                     if(p.inv <= 0 && !p.skills.shield.active) {
                         p.lives--; p.inv=120; this.shake=25;
-                        UI.txt("WARNING", p.x - this.cam.x, p.y-50 - this.cam.y, '#ff0055');
-                        UI.hud();
+                        UI.floatText("WARNING", p.x - this.cam.x, p.y-50 - this.cam.y, '#ff0055');
+                        UI.updateHUD();
                         if(p.lives <= 0) { this.state='OVER'; UI.show('p-dead'); }
                     }
                 }
@@ -434,14 +424,7 @@ const Game = {
         }
         if(p.inv > 0) p.inv--;
 
-        // 3. 粒子
-        for(let i=this.parts.length-1; i>=0; i--) {
-            let pt = this.parts[i];
-            pt.x += pt.vx; pt.y += pt.vy; pt.l -= 0.03;
-            if(pt.l <= 0) this.parts.splice(i,1);
-        }
-
-        // 4. CD
+        // CD
         for(let k in p.skills) {
             if(p.skills[k].cd > 0) { p.skills[k].cd -= 16; UI.cd(k, p.skills[k].cd); }
         }
@@ -459,6 +442,7 @@ const Game = {
             ex = this.cam.x + Math.random()*this.W;
             ey = this.cam.y + (Math.random()>0.5 ? -200 : this.H+200);
         }
+        
         if(ex<0)ex=0; if(ex>CFG.WORLD)ex=CFG.WORLD;
         if(ey<0)ey=0; if(ey>CFG.WORLD)ey=CFG.WORLD;
 
@@ -467,15 +451,8 @@ const Game = {
 
         this.enemies.push({
             x:ex, y:ey, vx:(Math.random()-0.5)*proto.spd, vy:(Math.random()-0.5)*proto.spd,
-            r:r, color:proto.color, type:proto.type, aggro:proto.aggro, // 这里修复了 proto.col -> proto.color
+            r:r, color:proto.color, type:proto.type, aggro:proto.aggro,
             angle:0, tail:0, stun:0
-        });
-    },
-
-    boom(x, y, c) {
-        for(let i=0; i<8; i++) this.parts.push({
-            x:x, y:y, vx:(Math.random()-0.5)*12, vy:(Math.random()-0.5)*12,
-            r:Math.random()*5+2, color:c, l:1
         });
     },
 
@@ -487,9 +464,9 @@ const Game = {
             s.active = true; s.cd = cfg.cd;
             if(k==='sonar') {
                 this.shake = 40; this.enemies.forEach(e => e.stun = 180);
-                UI.txt("SONAR!", this.p.x - this.cam.x, this.p.y-50 - this.cam.y, '#fff');
+                UI.floatText("SONAR!", this.p.x - this.cam.x, this.p.y-50 - this.cam.y, '#fff');
             } else {
-                UI.txt(k.toUpperCase(), this.p.x - this.cam.x, this.p.y-50 - this.cam.y, '#fff');
+                UI.floatText(k.toUpperCase(), this.p.x - this.cam.x, this.p.y-50 - this.cam.y, '#fff');
             }
             setTimeout(() => s.active = false, cfg.dur);
         }
@@ -513,20 +490,17 @@ const Game = {
         ctx.strokeStyle = 'rgba(255,255,255,0.1)'; ctx.lineWidth=20;
         ctx.strokeRect(0,0,CFG.WORLD, CFG.WORLD);
 
-        // 参照物 (重要：防止黑屏感)
         ctx.fillStyle = 'rgba(255,255,255,0.1)';
-        this.grid.forEach(d => {
-            ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 6.28); ctx.fill();
-        });
+        this.grid.forEach(d => { ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 6.28); ctx.fill(); });
 
-        // 深海光照
+        // 光照层
         if(lvl.dark > 0) {
             ctx.fillStyle = `rgba(0,0,0,${lvl.dark})`;
             ctx.fillRect(this.cam.x-50, this.cam.y-50, this.W+100, this.H+100);
             ctx.globalCompositeOperation = 'destination-out';
             
-            this.light(p.x, p.y, p.r*5+300);
-            this.enemies.forEach(e => { if(e.type==='angler') this.light(e.x, e.y, e.r*4+100); });
+            Render.light(ctx, p.x, p.y, p.r*5+300);
+            this.enemies.forEach(e => { if(e.type==='angler') Render.light(ctx, e.x, e.y, e.r*4+100); });
             ctx.globalCompositeOperation = 'source-over';
         }
 
@@ -544,35 +518,83 @@ const Game = {
             ctx.beginPath(); ctx.arc(p.x, p.y, CFG.SKILLS.sonar.r, 0, 6.28); ctx.stroke();
         }
 
-        // 实体
+        // 绘制所有鱼
         this.enemies.forEach(e => Render.fish(ctx, e.x, e.y, e.r, e.angle, e.color, e.type, e.tail));
         if(p.inv%10 < 5) Render.fish(ctx, p.x, p.y, p.r, p.angle, p.color, 'player', p.tail);
 
-        // 粒子
-        this.parts.forEach(pt => {
-            ctx.globalAlpha = pt.l; ctx.fillStyle = pt.color;
-            ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.r, 0, 6.28); ctx.fill();
-        });
-        ctx.globalAlpha = 1;
-
         ctx.restore();
-    },
-
-    light(x, y, r) {
-        const g = this.ctx.createRadialGradient(x, y, r*0.1, x, y, r);
-        g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
-        this.ctx.fillStyle=g; this.ctx.beginPath(); this.ctx.arc(x, y, r, 0, 6.28); this.ctx.fill();
     }
 };
 
-/* --- UI --- */
+/* --- 5. App Logic --- */
+const App = {
+    user: null,
+    verifyPass() {
+        if(document.getElementById('inp-pass').value === CFG.PASS) UI.show('p-login');
+        else alert('密码无效');
+    },
+    login() {
+        const v = document.getElementById('inp-user').value.trim().toUpperCase();
+        if(v && /^[A-Z]+$/.test(v)) { this.user = v; this.loadSaves(); }
+        else alert('代号无效');
+    },
+    clearData() {
+        if(confirm("确定要清除所有浏览器缓存数据吗？这将修复黑屏问题。")) {
+            Store.clear();
+            alert("已清理。请刷新页面。");
+            location.reload();
+        }
+    },
+    loadSaves() {
+        UI.show('p-saves');
+        const list = document.getElementById('slot-list');
+        list.innerHTML = '';
+        const s = Store.get(`DSE_${this.user}`) ? JSON.parse(Store.get(`DSE_${this.user}`)) : [];
+        if(s.length===0) list.innerHTML = '<div style="color:#888">暂无存档</div>';
+        s.forEach(x => {
+            const d = document.createElement('div');
+            d.className = 'slot';
+            d.innerHTML = `
+                <div onclick="Game.start(${x.lvl}, ${x.id})">
+                    <b style="color:var(--gold)">${CFG.LEVELS[x.lvl].name}</b>
+                    <span style="font-size:12px;color:#aaa">Size: ${Math.floor(x.score)}</span>
+                </div>
+                <div style="color:red;padding:0 10px" onclick="App.del(${x.id})">×</div>
+            `;
+            list.appendChild(d);
+        });
+    },
+    newGame() { Game.start(0, null); },
+    save(lvl, score) {
+        let s = Store.get(`DSE_${this.user}`) ? JSON.parse(Store.get(`DSE_${this.user}`)) : [];
+        if(Game.saveId) {
+            let i = s.findIndex(x=>x.id===Game.saveId);
+            if(i>=0) { s[i].lvl=lvl; s[i].score=score; }
+        } else {
+            Game.saveId = Date.now();
+            if(s.length>=4) s.shift();
+            s.push({id:Game.saveId, lvl:lvl, score:score});
+        }
+        Store.set(`DSE_${this.user}`, JSON.stringify(s));
+    },
+    del(id) {
+        if(!confirm('删除?'))return;
+        let s = JSON.parse(Store.get(`DSE_${this.user}`));
+        s = s.filter(x=>x.id!==id);
+        Store.set(`DSE_${this.user}`, JSON.stringify(s));
+        this.loadSaves();
+    },
+    saveQuit() { this.save(Math.min(Game.lvlIdx+1, 1), Game.p.r); this.loadSaves(); }
+};
+
+/* --- 6. UI Utils --- */
 const UI = {
     show(id) {
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
         if(id) document.getElementById(id).classList.add('active');
     },
     enter() {
-        if(document.getElementById('p-pass').classList.contains('active')) App.checkPass();
+        if(document.getElementById('p-pass').classList.contains('active')) App.verifyPass();
         else if(document.getElementById('p-login').classList.contains('active')) App.login();
     },
     setupHUD(lvl) {
@@ -581,9 +603,9 @@ const UI = {
         ['dash','shield','magnet','sonar'].forEach(k => {
             document.getElementById(`s-${k}`).style.display = lvl.skills.includes(k) ? 'flex' : 'none';
         });
-        this.hud();
+        this.updateHUD();
     },
-    hud() {
+    updateHUD() {
         document.getElementById('v-size').innerText = Math.floor(Game.p.r);
         document.getElementById('v-lives').innerText = Game.p.lives;
     },
@@ -593,67 +615,12 @@ const UI = {
         const b = document.getElementById(`s-${k}`);
         if(val<=0) b.classList.add('active'); else b.classList.remove('active');
     },
-    txt(t, x, y, c) {
+    floatText(txt, x, y, color) {
         if(x<0||x>Game.W||y<0||y>Game.H) return;
-        const d = document.createElement('div'); d.className='float-txt'; d.innerText=t;
-        d.style.left=x+'px'; d.style.top=y+'px'; d.style.color=c;
+        const d = document.createElement('div'); d.className='float-txt'; d.innerText=txt;
+        d.style.left=x+'px'; d.style.top=y+'px'; d.style.color=color;
         document.getElementById('ui-layer').appendChild(d);
         setTimeout(()=>d.remove(), 1000);
-    }
-};
-
-/* --- App Logic --- */
-const App = {
-    user: null,
-    checkPass() {
-        if(document.getElementById('inp-pass').value === CFG.PASS) UI.show('p-login');
-        else alert('密码无效');
-    },
-    login() {
-        const v = document.getElementById('inp-user').value.trim().toUpperCase();
-        if(v && /^[A-Z]+$/.test(v)) { this.user=v; this.loadSaves(); }
-        else alert('无效代号');
-    },
-    loadSaves() {
-        UI.show('p-saves');
-        const l = document.getElementById('slot-list'); l.innerHTML='';
-        const s = Store.get(`DS_${this.user}`) ? JSON.parse(Store.get(`DS_${this.user}`)) : [];
-        if(s.length===0) l.innerHTML = '<div style="color:#888">暂无数据</div>';
-        s.forEach(x => {
-            const d = document.createElement('div'); d.className='slot';
-            d.innerHTML = `
-                <div onclick="Game.start(${x.lvl}, ${x.id})">
-                    <b style="color:var(--gold)">${CFG.LEVELS[x.lvl].name}</b>
-                    <span style="font-size:0.8em;color:#aaa">Size: ${Math.floor(x.score)}</span>
-                </div>
-                <div style="color:red;padding:0 10px" onclick="App.del(${x.id})">×</div>
-            `;
-            l.appendChild(d);
-        });
-    },
-    newGame() { Game.start(0, null); },
-    save(lvl, score) {
-        let s = Store.get(`DS_${this.user}`) ? JSON.parse(Store.get(`DS_${this.user}`)) : [];
-        if(Game.saveId) {
-            let i = s.findIndex(x=>x.id===Game.saveId);
-            if(i>=0) { s[i].lvl=lvl; s[i].score=score; }
-        } else {
-            Game.saveId = Date.now();
-            if(s.length>=4) s.shift();
-            s.push({id:Game.saveId, lvl:lvl, score:score});
-        }
-        Store.set(`DS_${this.user}`, JSON.stringify(s));
-    },
-    del(id) {
-        if(!confirm('删除?'))return;
-        let s = JSON.parse(Store.get(`DS_${this.user}`));
-        s = s.filter(x=>x.id!==id);
-        Store.set(`DS_${this.user}`, JSON.stringify(s));
-        this.loadSaves();
-    },
-    saveQuit() {
-        this.save(Math.min(Game.lvlIdx+1, 1), Game.p.r);
-        this.loadSaves();
     }
 };
 
